@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Leaf, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { AuthHeader } from "@/components/AuthHeader";
@@ -23,10 +23,7 @@ function CoachPageInner() {
           transition={{ duration: 0.5, ease: "easeOut" }}
           className="max-w-2xl mx-auto"
         >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-primary/10 text-primary p-2.5 rounded-full">
-              <Leaf className="w-6 h-6" />
-            </div>
+          <div className="mb-4">
             <div>
               <h1 className="text-2xl font-bold text-foreground">
                 NourishMe Coach

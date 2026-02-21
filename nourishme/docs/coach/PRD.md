@@ -44,12 +44,14 @@ NourishMe Coach is a Claude-powered conversational assistant that helps SNAP rec
 - Opens a slide-in panel from the right edge
 - Compact chat interface with message history, input, and suggested prompts
 - Collapsible — does not block page content when closed
+- Header actions use clear text buttons (for example, "Open page") instead of icon-only controls
 
 ### 2. Dedicated `/coach` Page (MVP)
 - Full-page chat experience for longer, deeper conversations
 - Centered layout with wider message area
 - Same suggested prompts and interaction patterns as the dock
-- Accessible via navigation and "Open full chat" link in the dock
+- Accessible via navigation and "Open page" action in the dock
+- Minimal visual chrome (fewer decorative icons) to keep attention on conversation and actions
 
 ### 3. Contextual "Ask Coach" CTAs (Post-MVP — Task 38)
 - Small buttons on Plan day cards, Pantry page, Grocery List, and Resources pages
@@ -82,6 +84,12 @@ When the Coach makes factual claims backed by retrieved knowledge base chunks:
 
 ### Follow-Up Suggestions
 After each response, the Coach may suggest 2-3 follow-up questions as tappable chips.
+
+### UI/UX Polish Principles
+- Prioritize action clarity over decoration: use labeled buttons for primary actions (`Send`, `Stop`, `Retry`)
+- Keep related actions together (input and send/stop controls in one row)
+- Reduce non-essential icon usage in headers, chips, and helper controls
+- Preserve accessibility with explicit labels and keyboard behavior
 
 ## Safety Disclaimers
 

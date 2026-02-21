@@ -1,6 +1,5 @@
 "use client";
 
-import { Leaf } from "lucide-react";
 import { useCoach } from "@/contexts/CoachContext";
 import { cn } from "@/lib/utils";
 import {
@@ -34,14 +33,13 @@ export function AskCoachButton({
         openCoach(prompt);
       }}
       className={cn(
-        "inline-flex items-center gap-1.5 transition-colors font-medium",
+        "inline-flex items-center transition-colors font-medium",
         variant === "chip"
           ? "text-[11px] px-2.5 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10"
           : "text-xs text-primary/80 hover:text-primary",
         className,
       )}
     >
-      <Leaf className="w-3 h-3" />
       {label}
     </button>
   );

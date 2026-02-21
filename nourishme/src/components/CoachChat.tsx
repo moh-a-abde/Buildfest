@@ -3,24 +3,6 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import {
-  AlertTriangle,
-  ArrowUp,
-  BookOpen,
-  Check,
-  ChevronDown,
-  ChevronUp,
-  Copy,
-  ExternalLink,
-  Leaf,
-  Loader2,
-  RotateCcw,
-  Square,
-  User,
-  Wallet,
-  ShoppingBasket,
-  UserCircle,
-} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -95,7 +77,6 @@ function CitationsList({
   return (
     <div className="ml-10 max-w-[85%]">
       <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
-        <BookOpen className="w-3 h-3" />
         <span>
           Sources{" "}
           {citations.length > 2 && (
@@ -112,10 +93,9 @@ function CitationsList({
             href={citation.source_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors text-muted-foreground"
+            className="inline-flex items-center text-[11px] px-2 py-1 rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors text-muted-foreground"
             title={citation.quote || citation.title}
           >
-            <ExternalLink className="w-2.5 h-2.5" />
             <span className={cn("truncate", compact ? "max-w-[140px]" : "max-w-[180px]")}>
               {citation.title}
             </span>
@@ -125,20 +105,10 @@ function CitationsList({
       {showToggle && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-primary/80 hover:text-primary transition-colors"
+          className="mt-1.5 inline-flex items-center text-[11px] text-primary/80 hover:text-primary transition-colors"
           aria-expanded={expanded}
         >
-          {expanded ? (
-            <>
-              <ChevronUp className="w-3 h-3" />
-              Show fewer
-            </>
-          ) : (
-            <>
-              <ChevronDown className="w-3 h-3" />
-              View all {citations.length} sources
-            </>
-          )}
+          {expanded ? "Show fewer" : `View all ${citations.length} sources`}
         </button>
       )}
     </div>
@@ -162,15 +132,11 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded-md hover:bg-muted/80 text-muted-foreground hover:text-foreground"
+      className="opacity-0 group-hover/msg:opacity-100 transition-opacity px-2 py-1 rounded-md hover:bg-muted/80 text-muted-foreground hover:text-foreground text-[11px]"
       aria-label="Copy answer"
       title="Copy answer"
     >
-      {copied ? (
-        <Check className="w-3 h-3 text-green-600" />
-      ) : (
-        <Copy className="w-3 h-3" />
-      )}
+      {copied ? "Copied" : "Copy"}
     </button>
   );
 }
@@ -178,12 +144,10 @@ function CopyButton({ text }: { text: string }) {
 function ContextToggleChip({
   active,
   onToggle,
-  icon: Icon,
   label,
 }: {
   active: boolean;
   onToggle: () => void;
-  icon: React.ComponentType<{ className?: string }>;
   label: string;
 }) {
   return (
@@ -199,7 +163,6 @@ function ContextToggleChip({
           : "bg-background text-muted-foreground border-border hover:bg-muted/50",
       )}
     >
-      <Icon className="w-3 h-3" />
       {label}
     </button>
   );
@@ -209,7 +172,7 @@ export function CoachChat({ initialPrompt, compact = false }: CoachChatProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [input, setInput] = useState("");
-  const sentInitialRef = useRef(false);
+  const lastInitialPromptRef = useRef<string | null>(null);
   const [contextToggles, setContextToggles] = useState<ContextToggles>({
     useProfile: false,
     usePantry: false,
@@ -235,8 +198,12 @@ export function CoachChat({ initialPrompt, compact = false }: CoachChatProps) {
   }, [messages]);
 
   useEffect(() => {
-    if (initialPrompt && !sentInitialRef.current && status === "ready") {
-      sentInitialRef.current = true;
+    if (
+      initialPrompt &&
+      status === "ready" &&
+      initialPrompt !== lastInitialPromptRef.current
+    ) {
+      lastInitialPromptRef.current = initialPrompt;
       sendMessage(
         { text: initialPrompt },
         { body: { contextToggles } },
@@ -277,8 +244,7 @@ export function CoachChat({ initialPrompt, compact = false }: CoachChatProps) {
   return (
     <div className={cn("flex flex-col", compact ? "h-full" : "h-[600px]")}>
       {/* Disclaimer */}
-      <div className="px-4 py-2 text-[11px] text-muted-foreground bg-muted/40 border-b leading-snug flex items-start gap-1.5">
-        <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+      <div className="px-4 py-2 text-[11px] text-muted-foreground bg-muted/40 border-b leading-snug">
         <span>
           This is general information, not medical or legal advice. For official
           eligibility and rules, consult your state SNAP agency or visit{" "}
@@ -291,19 +257,16 @@ export function CoachChat({ initialPrompt, compact = false }: CoachChatProps) {
         <ContextToggleChip
           active={contextToggles.useProfile}
           onToggle={() => toggleContext("useProfile")}
-          icon={UserCircle}
           label="My profile"
         />
         <ContextToggleChip
           active={contextToggles.usePantry}
           onToggle={() => toggleContext("usePantry")}
-          icon={ShoppingBasket}
           label="My pantry"
         />
         <ContextToggleChip
           active={contextToggles.useBudget}
           onToggle={() => toggleContext("useBudget")}
-          icon={Wallet}
           label="My budget"
         />
       </div>
@@ -318,9 +281,6 @@ export function CoachChat({ initialPrompt, compact = false }: CoachChatProps) {
       >
         {!hasMessages && (
           <div className="flex flex-col items-center justify-center h-full gap-6 text-center">
-            <div className="bg-primary/10 text-primary rounded-full p-4">
-              <Leaf className="w-8 h-8" />
-            </div>
             <div>
               <h3 className="font-semibold text-foreground text-lg mb-1">
                 NourishMe Coach
@@ -369,8 +329,8 @@ export function CoachChat({ initialPrompt, compact = false }: CoachChatProps) {
                 )}
               >
                 {message.role === "assistant" && (
-                  <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center mt-0.5">
-                    <Leaf className="w-4 h-4" />
+                  <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center mt-0.5 text-[10px] font-semibold">
+                    AI
                   </div>
                 )}
 
@@ -396,8 +356,8 @@ export function CoachChat({ initialPrompt, compact = false }: CoachChatProps) {
                 )}
 
                 {message.role === "user" && (
-                  <div className="flex-shrink-0 w-7 h-7 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center mt-0.5">
-                    <User className="w-4 h-4" />
+                  <div className="flex-shrink-0 w-7 h-7 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center mt-0.5 text-[10px] font-semibold">
+                    You
                   </div>
                 )}
               </div>
@@ -410,7 +370,6 @@ export function CoachChat({ initialPrompt, compact = false }: CoachChatProps) {
                       key={i}
                       className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg px-3 py-2 mt-1"
                     >
-                      <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
                       <span>{note}</span>
                     </div>
                   ))}
@@ -444,8 +403,8 @@ export function CoachChat({ initialPrompt, compact = false }: CoachChatProps) {
 
         {status === "submitted" && (
           <div className="flex gap-3 justify-start">
-            <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center mt-0.5">
-              <Leaf className="w-4 h-4" />
+            <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center mt-0.5 text-[10px] font-semibold">
+              AI
             </div>
             <div className="bg-muted/60 rounded-2xl rounded-bl-md px-4 py-3">
               <div className="flex items-center gap-1.5">
@@ -461,7 +420,6 @@ export function CoachChat({ initialPrompt, compact = false }: CoachChatProps) {
       {/* Error state */}
       {error && (
         <div className="px-4 py-2 flex items-center gap-2 text-sm bg-destructive/10 text-destructive border-t">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
           <span className="flex-1 truncate">
             Something went wrong. Please try again.
           </span>
@@ -470,7 +428,6 @@ export function CoachChat({ initialPrompt, compact = false }: CoachChatProps) {
             size="xs"
             onClick={() => regenerate({ body: { contextToggles } })}
           >
-            <RotateCcw className="w-3 h-3" />
             Retry
           </Button>
         </div>
@@ -478,19 +435,6 @@ export function CoachChat({ initialPrompt, compact = false }: CoachChatProps) {
 
       {/* Input area */}
       <div className="border-t bg-background p-3">
-        {isLoading && (
-          <div className="flex justify-center mb-2">
-            <Button
-              variant="outline"
-              size="xs"
-              onClick={() => stop()}
-              className="text-muted-foreground"
-            >
-              <Square className="w-3 h-3" />
-              Stop generating
-            </Button>
-          </div>
-        )}
         <form onSubmit={handleSubmit} className="flex items-end gap-2">
           <textarea
             ref={inputRef}
@@ -511,17 +455,24 @@ export function CoachChat({ initialPrompt, compact = false }: CoachChatProps) {
           />
           <Button
             type="submit"
-            size="icon"
+            size="sm"
             disabled={!input.trim() || isLoading}
-            className="rounded-xl h-[38px] w-[38px] flex-shrink-0"
-            aria-label="Send message"
+            className="rounded-xl h-[38px] px-3 flex-shrink-0"
+            aria-label="Send"
           >
-            {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <ArrowUp className="w-4 h-4" />
-            )}
+            Send
           </Button>
+          {isLoading && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => stop()}
+              className="rounded-xl h-[38px] px-3 flex-shrink-0 text-muted-foreground"
+            >
+              Stop
+            </Button>
+          )}
         </form>
       </div>
     </div>

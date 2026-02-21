@@ -2,7 +2,7 @@
 
 import { useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
-import { Leaf, Maximize2 } from "lucide-react";
+import { Leaf } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sheet,
@@ -18,14 +18,6 @@ import { useCoach } from "@/contexts/CoachContext";
 export function CoachDock() {
   const { open, initialPrompt, openCoach, closeCoach } = useCoach();
   const fabRef = useRef<HTMLButtonElement>(null);
-  const chatKeyRef = useRef(0);
-
-  // Force CoachChat remount when opening with a new prompt so initialPrompt fires fresh
-  useEffect(() => {
-    if (open && initialPrompt) {
-      chatKeyRef.current += 1;
-    }
-  }, [open, initialPrompt]);
 
   const handleOpenChange = useCallback(
     (next: boolean) => {
@@ -79,26 +71,21 @@ export function CoachDock() {
         >
           <SheetHeader className="px-4 py-3 border-b flex-shrink-0">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="bg-primary/10 text-primary p-1.5 rounded-full">
-                  <Leaf className="w-4 h-4" />
-                </div>
-                <div>
-                  <SheetTitle className="text-base">
-                    NourishMe Coach
-                  </SheetTitle>
-                  <SheetDescription className="text-xs">
-                    Nutrition &amp; SNAP guidance
-                  </SheetDescription>
-                </div>
+              <div>
+                <SheetTitle className="text-base">
+                  NourishMe Coach
+                </SheetTitle>
+                <SheetDescription className="text-xs">
+                  Nutrition &amp; SNAP guidance
+                </SheetDescription>
               </div>
-              <Button variant="ghost" size="icon-xs" asChild>
+              <Button variant="ghost" size="sm" asChild>
                 <Link
                   href="/coach"
                   onClick={() => closeCoach()}
-                  aria-label="Open full chat"
+                  aria-label="Open full page"
                 >
-                  <Maximize2 className="w-3.5 h-3.5" />
+                  Open page
                 </Link>
               </Button>
             </div>
@@ -106,7 +93,6 @@ export function CoachDock() {
 
           <div className="flex-1 min-h-0">
             <CoachChat
-              key={chatKeyRef.current}
               initialPrompt={initialPrompt}
               compact
             />
