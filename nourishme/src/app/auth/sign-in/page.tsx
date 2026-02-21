@@ -87,10 +87,13 @@ function SignInContent() {
 
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Welcome back</CardTitle>
+            <CardTitle className="text-2xl">Sign in to NourishMe</CardTitle>
             <CardDescription>
-              Sign in to access your meal plans and pantry
+              Save your pantry and plans across devices.
             </CardDescription>
+            <p className="text-sm text-muted-foreground mt-2">
+              Free · Built for SNAP planning · No credit card.
+            </p>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -171,7 +174,7 @@ function SignInContent() {
               className="w-full"
               onClick={handleGuestMode}
             >
-              Continue as Guest
+              Try as guest (no account needed).
             </Button>
 
             <p className="mt-6 text-center text-sm text-muted-foreground">
@@ -184,6 +187,9 @@ function SignInContent() {
               </Link>
             </p>
 
+            <p className="mt-6 text-center text-sm text-muted-foreground">
+              Your data stays private and is used only to generate your plan.
+            </p>
             <div className="mt-4 text-center">
               <Link
                 href="/"

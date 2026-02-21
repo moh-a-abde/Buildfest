@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Leaf, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +10,9 @@ import { motion } from "framer-motion";
 export function AuthHeader() {
   const { user, isGuest, isLoading, signOut } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const isHomePage = pathname === "/";
+  const showFullNav = isHomePage && !user && !isGuest;
   const username = user?.email?.split("@")[0] ?? user?.email ?? "Account";
 
   async function handleSignOut() {
@@ -23,7 +26,7 @@ export function AuthHeader() {
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className="w-full max-w-4xl pointer-events-auto bg-background/80 backdrop-blur-xl border border-border/50 shadow-sm rounded-full"
+        className="w-full max-w-6xl pointer-events-auto bg-background/80 backdrop-blur-xl border border-border/50 shadow-sm rounded-full"
       >
         <div className="px-6 py-3 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
@@ -36,9 +39,13 @@ export function AuthHeader() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
-            <Link href="#how-it-works" className="hover:text-foreground transition-colors">How It Works</Link>
-            <Link href="/pantry" className="hover:text-foreground transition-colors">Pantry</Link>
-            <Link href="#testimonials" className="hover:text-foreground transition-colors">Stories</Link>
+            {showFullNav && (
+              <>
+                <Link href="#how-it-works" className="hover:text-foreground transition-colors">How It Works</Link>
+                <Link href="/pantry" className="hover:text-foreground transition-colors">Pantry</Link>
+                <Link href="#testimonials" className="hover:text-foreground transition-colors">Stories</Link>
+              </>
+            )}
           </nav>
 
           <nav className="flex items-center gap-3">

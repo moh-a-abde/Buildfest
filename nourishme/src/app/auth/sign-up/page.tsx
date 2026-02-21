@@ -112,7 +112,7 @@ function SignUpContent() {
                 className="w-full"
                 onClick={handleGuestMode}
               >
-                Continue as Guest for Now
+                Try as guest (no account needed).
               </Button>
             </CardContent>
           </Card>
@@ -133,10 +133,13 @@ function SignUpContent() {
 
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Create your account</CardTitle>
+            <CardTitle className="text-2xl">Sign up to NourishMe</CardTitle>
             <CardDescription>
-              Save your meal plans and pantry across devices
+              Save your pantry and plans across devices.
             </CardDescription>
+            <p className="text-sm text-muted-foreground mt-2">
+              Free · Built for SNAP planning · No credit card.
+            </p>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -236,7 +239,7 @@ function SignUpContent() {
               className="w-full"
               onClick={handleGuestMode}
             >
-              Continue as Guest
+              Try as guest (no account needed).
             </Button>
 
             <p className="mt-6 text-center text-sm text-muted-foreground">
@@ -249,6 +252,9 @@ function SignUpContent() {
               </Link>
             </p>
 
+            <p className="mt-6 text-center text-sm text-muted-foreground">
+              Your data stays private and is used only to generate your plan.
+            </p>
             <div className="mt-4 text-center">
               <Link
                 href="/"

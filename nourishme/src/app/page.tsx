@@ -122,7 +122,7 @@ export default function Home() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative overflow-hidden bg-secondary/30 pt-16 md:pt-24 pb-20 md:pb-32">
+        <section className="relative overflow-hidden bg-secondary/30 pt-24 md:pt-32 pb-20 md:pb-32">
           <div className="container mx-auto px-4 relative z-10 text-center max-w-4xl">
             <Badge
               variant="secondary"
@@ -145,7 +145,7 @@ export default function Home() {
                   </h2>
                   <p className="text-lg md:text-xl text-muted-foreground mb-10 leading-relaxed max-w-2xl mx-auto">
                     Based on your pantry, SNAP balance, and household size, we&apos;ll
-                    help you plan another week of meals that waste less and stay on
+                    help you plan meals that waste less and stay on
                     budget.
                   </p>
                   <Button

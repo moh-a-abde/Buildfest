@@ -22,6 +22,7 @@ import {
   Plus,
   Users,
 } from "lucide-react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -173,6 +174,7 @@ export default function OnboardingPage() {
   const searchParams = useSearchParams();
   const isEditMode = searchParams.get("edit") === "1";
   const [step, setStep] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
   const [apiLoaded, setApiLoaded] = useState(false);
   const [enteredCookingStepAt, setEnteredCookingStepAt] = useState<number | null>(null);
 
@@ -249,13 +251,23 @@ export default function OnboardingPage() {
   async function handleNext() {
     const valid = await validateCurrentStep();
     if (!valid) return;
-    if (step < TOTAL_STEPS - 1) {
-      setStep((s) => s + 1);
-    }
+    setStep((s) => {
+      if (s < TOTAL_STEPS - 1) {
+        setIsAnimating(true);
+        return s + 1;
+      }
+      return s;
+    });
   }
 
   function handleBack() {
-    if (step > 0) setStep((s) => s - 1);
+    setStep((s) => {
+      if (s > 0) {
+        setIsAnimating(true);
+        return s - 1;
+      }
+      return s;
+    });
   }
 
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -336,8 +348,14 @@ export default function OnboardingPage() {
 
   const currentMeta = STEP_META[step];
 
+  const shouldReduceMotion = useReducedMotion();
+  const transition = { duration: 0.7, ease: "easeOut" };
+  const motionProps = shouldReduceMotion
+    ? { initial: { opacity: 1, y: 0 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 1, y: 0 }, transition }
+    : { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -16 }, transition };
+
   return (
-    <div className="min-h-screen flex flex-col bg-secondary/30">
+    <div className="min-h-screen flex flex-col bg-background">
       <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-20">
         <div className="container mx-auto px-4 h-14 flex items-center gap-2">
           <Leaf className="w-5 h-5 text-primary" />
@@ -345,60 +363,83 @@ export default function OnboardingPage() {
         </div>
       </header>
 
-      <div className="w-full bg-muted">
-        <div
-          className="h-1 bg-primary transition-all duration-500 ease-out"
-          style={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }}
-        />
-      </div>
-
-      <main className="flex-1 flex items-start md:items-center justify-center px-4 py-8 md:py-0">
-        <div className="w-full max-w-lg">
-          <div className="flex items-center justify-center gap-2 mb-6">
-            {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+      <main className="flex-1 flex flex-col items-center px-4 sm:px-6 py-8 md:py-10">
+        <div className="w-full max-w-md md:max-w-lg">
+          <div className="w-full mb-6">
+            <div className="w-full bg-muted h-1 rounded-full overflow-hidden mb-6">
               <div
-                key={i}
-                className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-colors ${
-                  i < step
-                    ? "bg-primary text-primary-foreground"
-                    : i === step
-                      ? "bg-primary text-primary-foreground ring-4 ring-primary/20"
-                      : "bg-muted text-muted-foreground"
-                }`}
-              >
-                {i < step ? <Check className="w-4 h-4" /> : i + 1}
-              </div>
-            ))}
+                className="h-1 bg-primary/80 transition-all duration-500 ease-out rounded-full"
+                style={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-2 px-2">
+              {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full text-sm font-medium transition-colors ${
+                    i < step
+                      ? "bg-primary text-primary-foreground"
+                      : i === step
+                        ? "bg-primary text-primary-foreground ring-4 ring-primary/20"
+                        : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {i < step ? <Check className="w-4 h-4 sm:w-5 sm:h-5" /> : i + 1}
+                </div>
+              ))}
+            </div>
           </div>
 
-          <Card>
-            <CardHeader className="text-center">
+          <Card className="min-h-[360px] flex flex-col shadow-[0_4px_20px_-4px_hsl(var(--primary)/0.15)] p-4 sm:p-6">
+            <CardHeader className="text-center px-0 pt-0 pb-6">
               <div className="mx-auto bg-primary/10 w-12 h-12 rounded-xl flex items-center justify-center mb-2 text-primary">
                 {currentMeta.icon}
               </div>
-              <CardTitle className="text-2xl">{currentMeta.title}</CardTitle>
-              <CardDescription className="text-base">
+              <CardTitle className="text-2xl font-extrabold tracking-tight">{currentMeta.title}</CardTitle>
+              <CardDescription className="text-base text-muted-foreground">
                 {currentMeta.description}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1 flex flex-col px-0 pb-0">
               <Form {...form}>
                 <form
                   onSubmit={form.handleSubmit(onSubmit)}
-                  className="space-y-6"
+                  className="flex-1 flex flex-col"
                 >
-                  {step === 0 && <HouseholdStep />}
-                  {step === 1 && <ZipCodeStep />}
-                  {step === 2 && <DietaryStep />}
-                  {step === 3 && <CookingTimeStep />}
+                  <div className="flex-1 relative">
+                    <AnimatePresence mode="wait" onExitComplete={() => setIsAnimating(false)}>
+                      {step === 0 && (
+                        <motion.div key="step-0" {...motionProps} className="space-y-5">
+                          <HouseholdStep />
+                        </motion.div>
+                      )}
+                      {step === 1 && (
+                        <motion.div key="step-1" {...motionProps} className="space-y-5">
+                          <ZipCodeStep />
+                        </motion.div>
+                      )}
+                      {step === 2 && (
+                        <motion.div key="step-2" {...motionProps} className="space-y-5">
+                          <DietaryStep />
+                        </motion.div>
+                      )}
+                      {step === 3 && (
+                        <motion.div key="step-3" {...motionProps} className="space-y-5">
+                          <CookingTimeStep />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
 
-                  <div className="flex gap-3 pt-2">
+                  <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6 mt-auto">
                     {step > 0 && (
                       <Button
                         type="button"
                         variant="outline"
-                        className="flex-1 h-11"
+                        className="w-full sm:w-auto sm:flex-1 h-11 hover:shadow-md hover:-translate-y-0.5 transition-all"
                         onClick={handleBack}
+                        disabled={isAnimating}
                       >
                         <ArrowLeft className="w-4 h-4 mr-2" />
                         Back
@@ -407,8 +448,9 @@ export default function OnboardingPage() {
                     {step < TOTAL_STEPS - 1 ? (
                       <Button
                         type="button"
-                        className="flex-1 h-11"
+                        className="w-full sm:flex-1 h-11 hover:shadow-md hover:-translate-y-0.5 transition-all"
                         onClick={handleNext}
+                        disabled={isAnimating}
                       >
                         Continue
                         <ArrowRight className="w-4 h-4 ml-2" />
@@ -416,8 +458,8 @@ export default function OnboardingPage() {
                     ) : (
                       <Button
                         type="submit"
-                        className="flex-1 h-11"
-                        disabled={isSaving}
+                        className="w-full sm:flex-1 h-11 hover:shadow-md hover:-translate-y-0.5 transition-all"
+                        disabled={isSaving || isAnimating}
                       >
                         {isSaving ? (
                           <>
@@ -458,22 +500,22 @@ function HouseholdStep() {
         <FormItem>
           <FormLabel className="sr-only">Household Size</FormLabel>
           <FormControl>
-            <div className="flex items-center justify-center gap-6">
+            <div className="flex items-center justify-center gap-8 py-4">
               <Button
                 type="button"
                 variant="outline"
                 size="icon"
-                className="h-12 w-12 rounded-full"
+                className="h-14 w-14 rounded-full"
                 disabled={field.value <= 1}
                 onClick={() => field.onChange(Math.max(1, field.value - 1))}
               >
-                <Minus className="w-5 h-5" />
+                <Minus className="w-6 h-6" />
               </Button>
-              <div className="text-center">
-                <span className="text-5xl font-bold tabular-nums text-foreground">
+              <div className="text-center w-24">
+                <span className="text-6xl font-bold tabular-nums text-foreground font-mono">
                   {field.value}
                 </span>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-sm text-muted-foreground mt-2">
                   {field.value === 1 ? "person" : "people"}
                 </p>
               </div>
@@ -481,18 +523,20 @@ function HouseholdStep() {
                 type="button"
                 variant="outline"
                 size="icon"
-                className="h-12 w-12 rounded-full"
+                className="h-14 w-14 rounded-full"
                 disabled={field.value >= 8}
                 onClick={() => field.onChange(Math.min(8, field.value + 1))}
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="w-6 h-6" />
               </Button>
             </div>
           </FormControl>
           <FormDescription className="text-center">
             Including yourself (1–8 people)
           </FormDescription>
-          <FormMessage className="text-center" />
+          <div className="min-h-[1.25rem]">
+            <FormMessage className="text-center" />
+          </div>
         </FormItem>
       )}
     />
@@ -507,7 +551,7 @@ function ZipCodeStep() {
       control={control}
       name="zipCode"
       render={({ field }) => (
-        <FormItem>
+        <FormItem className="space-y-2">
           <FormLabel>ZIP Code</FormLabel>
           <FormControl>
             <Input
@@ -516,7 +560,7 @@ function ZipCodeStep() {
               inputMode="numeric"
               placeholder="e.g. 10001"
               maxLength={5}
-              className="text-center text-lg h-12 tracking-widest"
+              className="text-lg h-12 tracking-widest font-mono w-full"
               onChange={(e) => {
                 const val = e.target.value.replace(/\D/g, "").slice(0, 5);
                 field.onChange(val);
@@ -527,7 +571,9 @@ function ZipCodeStep() {
             Helps us estimate local grocery prices and find nearby food
             assistance programs.
           </FormDescription>
-          <FormMessage />
+          <div className="min-h-[1.25rem]">
+            <FormMessage />
+          </div>
         </FormItem>
       )}
     />
@@ -542,9 +588,9 @@ function DietaryStep() {
       control={control}
       name="dietaryFlags"
       render={() => (
-        <FormItem>
+        <FormItem className="space-y-4">
           <FormLabel className="sr-only">Dietary Preferences</FormLabel>
-          <div className="grid gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {DIETARY_OPTIONS.map((option) => (
               <FormField
                 key={option.value}
@@ -557,7 +603,7 @@ function DietaryStep() {
                     <FormItem>
                       <FormControl>
                         <label
-                          className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                          className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors h-full ${
                             checked
                               ? "border-primary bg-primary/5"
                               : "border-border hover:border-primary/40 hover:bg-muted/50"
@@ -573,8 +619,8 @@ function DietaryStep() {
                               );
                             }}
                           />
-                          <span className="text-xl">{option.icon}</span>
-                          <span className="font-medium">{option.label}</span>
+                          <span className="text-xl leading-none">{option.icon}</span>
+                          <span className="font-medium flex-1">{option.label}</span>
                         </label>
                       </FormControl>
                     </FormItem>
@@ -583,9 +629,9 @@ function DietaryStep() {
               />
             ))}
           </div>
-          <div className="mt-4 border-t pt-4">
-            <p className="text-sm font-medium mb-2">Exclude allergens</p>
-            <div className="grid gap-3">
+          <div className="mt-4 border-t pt-4 space-y-3">
+            <p className="text-sm font-medium">Exclude allergens</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {ALLERGEN_OPTIONS.map((option) => (
                 <FormField
                   key={option.value}
@@ -598,7 +644,7 @@ function DietaryStep() {
                       <FormItem>
                         <FormControl>
                           <label
-                            className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                            className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors h-full ${
                               checked
                                 ? "border-primary bg-primary/5"
                                 : "border-border hover:border-primary/40 hover:bg-muted/50"
@@ -614,8 +660,8 @@ function DietaryStep() {
                                 );
                               }}
                             />
-                            <span className="text-xl">{option.icon}</span>
-                            <span className="font-medium">{option.label}</span>
+                            <span className="text-xl leading-none">{option.icon}</span>
+                            <span className="font-medium flex-1">{option.label}</span>
                           </label>
                         </FormControl>
                       </FormItem>
@@ -638,15 +684,15 @@ function CookingTimeStep() {
   const { control } = useFormContext<OnboardingValues>();
 
   return (
-    <>
+    <div className="space-y-5">
       <FormField
         control={control}
         name="cookingTime"
         render={({ field }) => (
-          <FormItem>
+          <FormItem className="space-y-3">
             <FormLabel className="sr-only">Cooking Time</FormLabel>
             <FormControl>
-              <div className="grid gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {COOKING_TIME_OPTIONS.map((option) => {
                   const selected = field.value === option.value;
                   return (
@@ -654,40 +700,44 @@ function CookingTimeStep() {
                       key={option.value}
                       type="button"
                       onClick={() => field.onChange(option.value)}
-                      className={`flex items-center gap-4 p-4 rounded-lg border text-left transition-colors cursor-pointer ${
+                      className={`flex flex-row sm:flex-col items-center sm:items-start text-left gap-4 sm:gap-3 p-4 rounded-lg border transition-all cursor-pointer h-full w-full ${
                         selected
                           ? "border-primary bg-primary/5 ring-1 ring-primary"
                           : "border-border hover:border-primary/40 hover:bg-muted/50"
                       }`}
                     >
-                      <div
-                        className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${
-                          selected
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {option.value === "quick" ? (
-                          <Clock className="w-5 h-5" />
-                        ) : (
-                          <ChefHat className="w-5 h-5" />
+                      <div className="flex w-full items-center justify-between sm:justify-center sm:w-auto">
+                        <div
+                          className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${
+                            selected
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {option.value === "quick" ? (
+                            <Clock className="w-5 h-5" />
+                          ) : (
+                            <ChefHat className="w-5 h-5" />
+                          )}
+                        </div>
+                        {selected && (
+                          <Check className="w-5 h-5 text-primary sm:hidden flex-shrink-0" />
                         )}
                       </div>
-                      <div>
+                      <div className="flex-1">
                         <p className="font-medium">{option.label}</p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground mt-1">
                           {option.description}
                         </p>
                       </div>
-                      {selected && (
-                        <Check className="w-5 h-5 text-primary ml-auto flex-shrink-0" />
-                      )}
                     </button>
                   );
                 })}
               </div>
             </FormControl>
-            <FormMessage />
+            <div className="min-h-[1.25rem]">
+              <FormMessage />
+            </div>
           </FormItem>
         )}
       />
@@ -695,7 +745,7 @@ function CookingTimeStep() {
         control={control}
         name="ecoPriorityEnabled"
         render={({ field }) => (
-          <FormItem className="mt-4 rounded-lg border p-4">
+          <FormItem className="rounded-lg border p-4">
             <FormLabel className="font-medium">Prioritize lower-impact ingredients</FormLabel>
             <FormDescription>
               We will prefer lower eco-impact alternatives when they fit your budget and nutrition goals.
@@ -712,6 +762,6 @@ function CookingTimeStep() {
           </FormItem>
         )}
       />
-    </>
+    </div>
   );
 }

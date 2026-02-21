@@ -152,30 +152,33 @@ function substitutionLabel(reason?: string, reasonCodes?: string[]): string | nu
 
 function LoadingSkeleton() {
   return (
-    <div className="min-h-screen flex flex-col bg-secondary/30">
-      <AuthHeader />
-      <main className="flex-1 container mx-auto px-4 py-8 max-w-6xl">
-        <div className="animate-pulse space-y-6">
-          <div className="flex items-center gap-4">
-            <div className="h-9 w-28 bg-muted rounded-md" />
-            <div className="space-y-2 flex-1">
-              <div className="h-7 w-56 bg-muted rounded" />
-              <div className="h-4 w-36 bg-muted rounded" />
+    <>
+      <div className="fixed inset-0 pointer-events-none z-0 opacity-[0.02] bg-[url('data:image/svg+xml;utf8,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E')] mix-blend-overlay" />
+      <div className="min-h-screen flex flex-col bg-background">
+        <AuthHeader />
+        <main className="flex-1 w-full mx-auto px-4 sm:px-6 pt-28 pb-12 max-w-6xl relative z-10">
+          <div className="animate-pulse space-y-8">
+            <div className="flex flex-col gap-4">
+              <div className="h-8 w-28 bg-muted rounded-md" />
+              <div className="space-y-3">
+                <div className="h-10 w-64 bg-muted rounded-md" />
+                <div className="h-5 w-48 bg-muted rounded-md" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-32 bg-muted rounded-xl" />
+              ))}
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-80 bg-muted rounded-xl" />
+              ))}
             </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-24 bg-muted rounded-xl" />
-            ))}
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-7 gap-3">
-            {Array.from({ length: 7 }).map((_, i) => (
-              <div key={i} className="h-72 bg-muted rounded-xl" />
-            ))}
-          </div>
-        </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </>
   );
 }
 
@@ -197,36 +200,38 @@ function StatCard({
   infoTooltip?: string;
 }) {
   return (
-    <Card className={`border ${score !== undefined ? scoreColor(score) : "border-border bg-muted"}`}>
-      <CardContent className="py-4 px-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-white/60">
-            <Icon className="w-5 h-5" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium opacity-75 flex items-center gap-1">
+    <Card className={`flex flex-col h-full border ${score !== undefined ? scoreColor(score) : "border-border/60 bg-muted/20"} shadow-sm transition-all hover:shadow-md hover:border-border/80 group`}>
+      <CardContent className="p-5 sm:p-6 flex-1 flex flex-col">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className={`p-2 rounded-lg border ${score !== undefined ? "bg-white/80 border-black/5" : "bg-background border-border/50"} group-hover:scale-105 transition-transform`}>
+              <Icon className="w-4 h-4" />
+            </div>
+            <p className="text-[11px] font-bold uppercase tracking-wider opacity-80 flex items-center gap-1.5">
               {label}
               {infoTooltip && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span className="inline-flex cursor-help">
-                      <Info className="w-3 h-3" />
+                      <Info className="w-3.5 h-3.5" />
                     </span>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
-                    <p className="text-xs">{infoTooltip}</p>
+                    <p className="text-xs font-normal">{infoTooltip}</p>
                   </TooltipContent>
                 </Tooltip>
               )}
             </p>
-            <p className="text-lg font-bold leading-tight">{value}</p>
-            <p className="text-xs opacity-60 truncate">{subtitle}</p>
           </div>
           {score !== undefined && (
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-wider bg-background/50">
               {scoreBadge(score)}
             </Badge>
           )}
+        </div>
+        <div className="mt-auto">
+          <p className="text-xl sm:text-2xl font-bold font-mono tracking-tight leading-tight text-foreground">{value}</p>
+          <p className="text-[13px] font-medium text-muted-foreground mt-1 truncate">{subtitle}</p>
         </div>
       </CardContent>
     </Card>
@@ -279,7 +284,7 @@ function PlanScoreCards({
   const targetMaxCalories = NUTRITION_TARGET_PER_PERSON_MAX * householdSize;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mb-10">
       <StatCard
         label="Budget"
         value={`${formatCurrency(avgCostPerDay)}/day · ${formatCurrency(plan.estimatedTotalCost)}${budgetAmount !== null ? ` of ${formatCurrency(budgetAmount)}` : ""}`}
@@ -336,37 +341,35 @@ function MealRow({
     <button
       onClick={onClick}
       title={meal.name}
-      className="group w-full rounded-xl border border-border/70 bg-muted/20 px-3.5 py-3 text-left transition-colors hover:border-border hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+      className="group w-full flex items-stretch justify-between gap-4 rounded-xl border border-transparent px-3 py-3.5 text-left transition-all hover:bg-muted/50 hover:border-border/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-2.5">
-          <div className="min-w-0">
-            <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {MEAL_TYPE_LABEL[meal.mealType]}
-              {expiring.length > 0 && expiryTooltip && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                      <Clock className="h-3 w-3 text-amber-600" />
-                      {expiring.length} pantry item{expiring.length > 1 ? "s" : ""} expiring soon
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs">{expiryTooltip}</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-            </p>
-            <p className="truncate text-base font-semibold leading-snug" title={meal.name}>
-              {meal.name}
-            </p>
-          </div>
+      <div className="flex flex-col min-w-0 flex-1 justify-center">
+        <div className="flex items-center gap-2 mb-1.5">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            {MEAL_TYPE_LABEL[meal.mealType]}
+          </span>
+          {expiring.length > 0 && expiryTooltip && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-background px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground shadow-sm">
+                  <Clock className="h-3 w-3 text-amber-600" />
+                  {expiring.length} expiring
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">{expiryTooltip}</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
+        <span className="text-[15px] font-semibold leading-snug truncate text-foreground" title={meal.name}>
+          {meal.name}
+        </span>
+      </div>
 
-        <div className="shrink-0 text-right">
-          <p className="text-sm font-semibold tabular-nums">{formatCurrency(meal.estimatedCost)}</p>
-          <p className="text-xs text-muted-foreground tabular-nums">{meal.calories} cal</p>
-        </div>
+      <div className="shrink-0 flex flex-col items-end justify-center w-24 border-l border-border/40 pl-4">
+        <span className="text-[15px] font-mono font-bold tabular-nums text-foreground">{formatCurrency(meal.estimatedCost)}</span>
+        <span className="text-[11px] font-mono font-medium text-muted-foreground tabular-nums mt-0.5">{meal.calories} cal</span>
       </div>
       <div className="sr-only">
         {MEAL_TYPE_LABEL[meal.mealType]} {meal.name} {formatCurrency(meal.estimatedCost)}{" "}
@@ -407,28 +410,28 @@ function DayColumn({
   return (
     <Card
       key={day.dayIndex ?? idx}
-      className="overflow-hidden border-border/80 bg-muted shadow-sm flex flex-col"
+      className="overflow-hidden border-border/60 bg-card shadow-sm flex flex-col hover:shadow-md transition-shadow"
     >
       {hasUrgentInDay && (
-        <div className="px-4 py-2 bg-amber-50 border-b border-amber-200 text-xs text-amber-900">
-          <span className="font-semibold">Use first:</span> {urgentExpiring.join(", ")} · Try not to
-          skip today&apos;s meals
+        <div className="px-5 py-2.5 bg-amber-50 border-b border-amber-100 text-xs text-amber-900 flex items-baseline gap-2">
+          <AlertTriangle className="w-3.5 h-3.5 shrink-0 translate-y-0.5" />
+          <span><span className="font-semibold">Use first:</span> {urgentExpiring.join(", ")} · Try not to skip today&apos;s meals</span>
         </div>
       )}
-      <CardHeader className="px-4 py-3 border-b bg-transparent">
-        <div className="flex items-center justify-between gap-2 min-w-0">
-          <CardTitle className="text-base font-semibold truncate">{dayLabel}</CardTitle>
+      <CardHeader className="px-5 py-4 border-b bg-muted/10">
+        <div className="flex items-center justify-between gap-4 min-w-0">
+          <CardTitle className="text-lg font-bold truncate">{dayLabel}</CardTitle>
           <div className="flex items-center gap-2 shrink-0">
-            <span className="rounded-md border bg-background px-2 py-1 text-xs text-muted-foreground tabular-nums">
+            <span className="rounded-md border border-border/50 bg-background px-2.5 py-1 text-[11px] font-mono font-bold uppercase tracking-wider text-muted-foreground tabular-nums">
               {formatCurrency(day.dayCost)}
             </span>
-            <span className="rounded-md border bg-background px-2 py-1 text-xs text-muted-foreground tabular-nums">
+            <span className="rounded-md border border-border/50 bg-background px-2.5 py-1 text-[11px] font-mono font-bold uppercase tracking-wider text-muted-foreground tabular-nums">
               {day.dayCalories.toLocaleString()} cal
             </span>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-4 space-y-2.5 flex-1 flex flex-col">
+      <CardContent className="p-3 sm:p-4 flex-1 flex flex-col gap-1">
         {meals.map((meal) => (
           <MealRow
             key={meal.id}
@@ -437,14 +440,13 @@ function DayColumn({
             onClick={() => onMealClick(meal)}
           />
         ))}
-        <div className="mt-auto pt-3 border-t text-xs text-muted-foreground space-y-1.5">
-          <p className="flex items-center justify-between gap-2">
-            <span>Pantry items used</span>
-            <span className="font-medium text-foreground tabular-nums">
+        <div className="mt-auto pt-4 px-3 border-t border-border/40 text-xs text-muted-foreground">
+          <p className="flex items-center justify-between gap-2 opacity-80">
+            <span className="font-medium">Pantry items used</span>
+            <span className="font-mono font-bold text-foreground tabular-nums">
               {pantryStats.used}
               {pantryStats.expiringSoon > 0 && (
-                <span className="text-muted-foreground font-normal">
-                  {" "}
+                <span className="text-muted-foreground font-medium ml-1">
                   ({pantryStats.expiringSoon} expiring soon)
                 </span>
               )}
@@ -488,12 +490,12 @@ function MealDetailDrawer({
             {meal.name}
           </SheetTitle>
           <SheetDescription asChild>
-            <p className="text-sm text-muted-foreground flex flex-wrap items-center gap-2 mt-1">
-              <Badge variant="secondary" className="font-normal">
+            <p className="text-sm text-muted-foreground flex flex-wrap items-center gap-2 mt-1 font-mono">
+              <Badge variant="secondary" className="font-sans font-bold uppercase tracking-wider text-[10px]">
                 {MEAL_TYPE_LABEL[meal.mealType]}
               </Badge>
-              <span>{formatCurrency(meal.estimatedCost)}</span>
-              <span>{meal.calories} cal</span>
+              <span className="font-semibold">{formatCurrency(meal.estimatedCost)}</span>
+              <span className="font-medium">{meal.calories} cal</span>
             </p>
           </SheetDescription>
         </SheetHeader>
@@ -528,7 +530,7 @@ function MealDetailDrawer({
             <div className="space-y-3">
               <div className="flex items-center justify-between rounded-md border border-border/70 bg-background px-3 py-2">
                 <span className="text-sm font-medium">Cost</span>
-                <span className="text-sm font-semibold">{formatCurrency(meal.estimatedCost)}</span>
+                <span className="text-sm font-bold font-mono">{formatCurrency(meal.estimatedCost)}</span>
               </div>
               <p className="text-xs text-muted-foreground">SNAP-eligible</p>
 
@@ -760,14 +762,14 @@ function PlanContent() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex flex-col bg-secondary/30">
+      <div className="min-h-screen flex flex-col bg-background">
         <AuthHeader />
-        <main className="flex-1 flex items-center justify-center">
+        <main className="flex-1 flex items-center justify-center relative z-10">
           <Card className="max-w-md w-full mx-4">
             <CardContent className="py-10 text-center space-y-4">
               <AlertTriangle className="w-12 h-12 text-destructive mx-auto" />
-              <h2 className="text-lg font-semibold">Unable to Load Plan</h2>
-              <p className="text-sm text-muted-foreground">{error}</p>
+              <h2 className="text-lg font-bold">Unable to Load Plan</h2>
+              <p className="text-sm font-medium text-muted-foreground">{error}</p>
               <Button asChild>
                 <Link href="/dashboard">
                   <ArrowLeft className="w-4 h-4 mr-2" />
@@ -818,177 +820,188 @@ function PlanContent() {
       : 0;
 
   return (
-    <div className="min-h-screen flex flex-col bg-secondary/30">
-      <AuthHeader />
+    <>
+      <div className="fixed inset-0 pointer-events-none z-0 opacity-[0.02] bg-[url('data:image/svg+xml;utf8,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E')] mix-blend-overlay" />
+      <div className="min-h-screen flex flex-col bg-background">
+        <AuthHeader />
 
-      <main className="flex-1 w-full max-w-[1800px] mx-auto px-4 py-6 xl:px-6">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/dashboard">
-              <ArrowLeft className="w-4 h-4 mr-1" />
-              Dashboard
-            </Link>
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold tracking-tight">
-              Your {days}-Day Meal Plan
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {getWeekRangeLabel(plan, plan.createdAt ?? null)} · 3 meals/day ·  {householdSize} people
-            </p>
+        <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-12 relative z-10">
+          {/* Header Block */}
+          <div className="mb-10 flex flex-col items-start gap-4">
+            <Button variant="ghost" size="sm" className="-ml-3 text-muted-foreground hover:text-foreground" asChild>
+              <Link href="/dashboard">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Dashboard
+              </Link>
+            </Button>
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground mb-2">
+                Your {days}-Day Meal Plan
+              </h1>
+              <p className="text-[15px] text-muted-foreground font-medium">
+                {getWeekRangeLabel(plan, plan.createdAt ?? null)} <span className="mx-1.5 opacity-50">·</span> 3 meals/day <span className="mx-1.5 opacity-50">·</span> {householdSize} people
+              </p>
+            </div>
           </div>
-        </div>
 
-        {/* Score Cards */}
-        {metrics ? (
-          <PlanScoreCards
-            plan={plan}
-            metrics={metrics}
-            budgetAmount={budgetAmount}
-            pantryItems={pantryItems}
-            expiringSoonUsed={expiringSoonUsed}
-            householdSize={householdSize}
-          />
-        ) : scoring ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6 p-3 bg-secondary/50 rounded-lg">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Calculating plan scores...
-          </div>
-        ) : null}
+          {/* Score Cards */}
+          {metrics ? (
+            <PlanScoreCards
+              plan={plan}
+              metrics={metrics}
+              budgetAmount={budgetAmount}
+              pantryItems={pantryItems}
+              expiringSoonUsed={expiringSoonUsed}
+              householdSize={householdSize}
+            />
+          ) : scoring ? (
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-10 p-4 bg-muted/30 rounded-xl border border-border/50">
+              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+              Calculating plan scores...
+            </div>
+          ) : null}
 
-        {/* 7-Day Calendar Grid - 1 day per row on small screens, 2 on larger */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
-          {plan.mealsByDay.map((day, idx) => {
-            const dayUrgent = getPantryItemsExpiringUrgent(pantryItems);
-            const dayUrgentNames = dayUrgent
-              .filter((p) => {
-                for (const m of day.meals) {
-                  for (const ing of m.ingredients) {
-                    if (ing.fromPantry) {
-                      const ingLower = ing.name.toLowerCase();
-                      const panLower = p.name.toLowerCase();
-                      if (
-                        ingLower.includes(panLower) ||
-                        panLower.includes(ingLower)
-                      )
-                        return true;
+          {/* 7-Day Calendar Grid - 1 day per row on small screens, 2 on larger */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
+            {plan.mealsByDay.map((day, idx) => {
+              const dayUrgent = getPantryItemsExpiringUrgent(pantryItems);
+              const dayUrgentNames = dayUrgent
+                .filter((p) => {
+                  for (const m of day.meals) {
+                    for (const ing of m.ingredients) {
+                      if (ing.fromPantry) {
+                        const ingLower = ing.name.toLowerCase();
+                        const panLower = p.name.toLowerCase();
+                        if (
+                          ingLower.includes(panLower) ||
+                          panLower.includes(ingLower)
+                        )
+                          return true;
+                      }
                     }
                   }
-                }
-                return false;
-              })
-              .map((p) => p.name);
+                  return false;
+                })
+                .map((p) => p.name);
 
-            return (
-              <DayColumn
-                key={day.dayIndex ?? idx}
-                day={day}
-                idx={idx}
-                plan={plan}
-                pantryItems={pantryItems}
-                onMealClick={setSelectedMeal}
-                urgentExpiring={dayUrgentNames}
-              />
-            );
-          })}
-        </div>
+              return (
+                <DayColumn
+                  key={day.dayIndex ?? idx}
+                  day={day}
+                  idx={idx}
+                  plan={plan}
+                  pantryItems={pantryItems}
+                  onMealClick={setSelectedMeal}
+                  urgentExpiring={dayUrgentNames}
+                />
+              );
+            })}
+          </div>
 
-        {/* Grocery List + Nearby SNAP Stores */}
-        {plan.shoppingList && plan.shoppingList.length > 0 && (
-          <GroceryList
-            shoppingList={plan.shoppingList}
-            householdSize={householdSize}
-            zipCode={profile?.zip_code ?? ""}
-            estimatedTotalCost={plan.estimatedTotalCost}
-          />
-        )}
+          {/* Grocery List + Nearby SNAP Stores */}
+          {plan.shoppingList && plan.shoppingList.length > 0 && (
+            <GroceryList
+              shoppingList={plan.shoppingList}
+              householdSize={householdSize}
+              zipCode={profile?.zip_code ?? ""}
+              estimatedTotalCost={plan.estimatedTotalCost}
+            />
+          )}
 
-        {/* Nutrition Summary - Card A */}
-        {plan.nutritionSummary && (
-          <div className="space-y-4 mb-6">
-            <Card className="border-border/80 bg-muted/20">
-              <CardHeader className="pb-3 border-b">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Leaf className="w-5 h-5 text-primary" />
-                  Nutrition at a glance
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm mb-4">
-                  <p className="text-foreground">
-                    <span className="text-muted-foreground">Avg calories/day:</span>{" "}
-                    <span className="font-semibold tabular-nums">{computedAvgCal.toLocaleString()}</span>
-                  </p>
-                  <p className="text-foreground">
-                    <span className="text-muted-foreground">Avg protein/day:</span>{" "}
-                    <span className="font-semibold tabular-nums">{computedAvgProtein}g</span>
-                  </p>
-                  {computedAvgFiber > 0 && (
-                    <p className="text-foreground">
-                      <span className="text-muted-foreground">Avg fiber/day:</span>{" "}
-                      <span className="font-semibold tabular-nums">{computedAvgFiber}g</span>
-                    </p>
-                  )}
-                </div>
-                {plan.nutritionSummary.notes.length > 0 && (
-                  <ul className="space-y-2">
-                    {plan.nutritionSummary.notes.map((note, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-foreground">
-                        <span className="text-green-600 mt-0.5">✓</span>
-                        <span>{note}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <p className="mt-4 text-sm">
-                  <a
-                    href={SNAP_ED_LEARN_MORE_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary/90 hover:text-primary hover:underline"
-                  >
-                    Learn more: Meal planning on a SNAP budget (SNAP-Ed)
-                  </a>
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Card B - Assumptions & notes (collapsible) */}
-            {plan.confidenceNotes.length > 0 && (
-              <Card className="border-border/80 bg-muted/20">
-                <CardHeader className="pb-3 border-b">
-                  <CardTitle className="text-base">Assumptions & notes</CardTitle>
+          {/* Nutrition Summary and Assumptions Row */}
+          {plan.nutritionSummary && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+              {/* Card A: Nutrition */}
+              <Card className="border-border/60 bg-card shadow-sm flex flex-col hover:shadow-md transition-shadow">
+                <CardHeader className="p-5 sm:p-6 border-b bg-muted/10">
+                  <CardTitle className="text-lg font-bold flex items-center gap-2.5">
+                    <Leaf className="w-5 h-5 text-primary" />
+                    Nutrition at a glance
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="pt-4">
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Planning assumptions used to generate this meal plan.
-                  </p>
-                  <ul className="space-y-2">
-                    {plan.confidenceNotes.map((note, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-foreground">
-                        <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-amber-700" />
-                        <span>{note}</span>
-                      </li>
-                    ))}
-                  </ul>
+                <CardContent className="p-5 sm:p-6 flex-1 flex flex-col">
+                  <div className="grid grid-cols-3 gap-4 mb-6 pb-6 border-b border-border/40">
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Avg calories/day</span>
+                      <span className="text-xl sm:text-2xl font-bold font-mono text-foreground tabular-nums">{computedAvgCal.toLocaleString()}</span>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Avg protein/day</span>
+                      <span className="text-xl sm:text-2xl font-bold font-mono text-foreground tabular-nums">{computedAvgProtein}g</span>
+                    </div>
+                    {computedAvgFiber > 0 && (
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Avg fiber/day</span>
+                        <span className="text-xl sm:text-2xl font-bold font-mono text-foreground tabular-nums">{computedAvgFiber}g</span>
+                      </div>
+                    )}
+                  </div>
+                  {plan.nutritionSummary.notes.length > 0 && (
+                    <div className="w-full">
+                      <ul className="space-y-4">
+                        {plan.nutritionSummary.notes.map((note, i) => (
+                          <li key={i} className="flex items-start gap-3 text-sm font-medium text-foreground/90">
+                            <span className="text-primary mt-0.5 text-base leading-none">✓</span>
+                            <span className="leading-relaxed">{note}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <div className="mt-auto pt-8">
+                    <a
+                      href={SNAP_ED_LEARN_MORE_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-sm font-semibold text-primary hover:text-primary/80 hover:underline transition-colors"
+                    >
+                      Learn more: Meal planning on a SNAP budget (SNAP-Ed)
+                    </a>
+                  </div>
                 </CardContent>
               </Card>
-            )}
-          </div>
-        )}
-      </main>
 
-      {/* Meal Detail Drawer */}
-      <MealDetailDrawer
-        meal={selectedMeal}
-        plan={plan}
-        pantryItems={pantryItems}
-        householdSize={householdSize}
-        open={!!selectedMeal}
-        onOpenChange={(open) => !open && setSelectedMeal(null)}
-      />
-    </div>
+              {/* Card B: Assumptions & notes */}
+              {plan.confidenceNotes.length > 0 && (
+                <Card className="border-border/60 bg-card shadow-sm flex flex-col hover:shadow-md transition-shadow">
+                  <CardHeader className="p-5 sm:p-6 border-b bg-muted/10">
+                    <CardTitle className="text-lg font-bold flex items-center gap-2.5">
+                      <AlertTriangle className="w-5 h-5 text-amber-600" />
+                      Assumptions & notes
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-5 sm:p-6 flex-1">
+                    <div className="w-full">
+                      <p className="text-sm font-medium text-muted-foreground mb-6">
+                        Planning assumptions used to generate this meal plan.
+                      </p>
+                      <ul className="space-y-4">
+                        {plan.confidenceNotes.map((note, i) => (
+                          <li key={i} className="flex items-start gap-3 text-sm font-medium text-foreground/90">
+                            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-600/70" />
+                            <span className="leading-relaxed">{note}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+        </main>
+
+        {/* Meal Detail Drawer */}
+        <MealDetailDrawer
+          meal={selectedMeal}
+          plan={plan}
+          pantryItems={pantryItems}
+          householdSize={householdSize}
+          open={!!selectedMeal}
+          onOpenChange={(open) => !open && setSelectedMeal(null)}
+        />
+      </div>
+    </>
   );
 }
 

@@ -40,6 +40,20 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import dynamic from "next/dynamic";
+import { motion } from "framer-motion";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const itemVariants = {
+  hidden: { y: 16, opacity: 0 },
+  visible: { y: 0, opacity: 1, transition: { duration: 0.6, ease: "easeOut" } }
+};
 import { AuthHeader } from "@/components/AuthHeader";
 import { StoreCard } from "@/components/GroceryList";
 import { useAuth } from "@/contexts/AuthContext";
@@ -187,114 +201,104 @@ function DashboardStoresSection({ zipCode }: { zipCode: string }) {
   const displayed = showAll ? stores : stores.slice(0, 5);
 
   return (
-    <Card className="mb-8 border-border/80 bg-muted/20">
-      <CardHeader className="pb-3 border-b">
-        <div className="flex items-start justify-between">
+    <Card className="shadow-sm rounded-2xl border-border/80 flex flex-col h-full bg-background">
+      <CardHeader className="p-6 border-b border-border/50">
+        <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-base flex items-center gap-2">
+            <h3 className="text-base font-extrabold tracking-tight text-foreground flex items-center gap-2">
               <MapPin className="w-5 h-5 text-primary" />
-              Nearby SNAP-Authorized Stores
-            </CardTitle>
-            <CardDescription className="mt-1">
-              Based on your ZIP code ({zipCode})
+              Nearby Stores
+            </h3>
+            <CardDescription className="mt-1 text-sm font-medium">
+              SNAP-authorized near <span className="font-mono">{zipCode}</span>
             </CardDescription>
           </div>
           {!loading && stores.length > 0 && (
-            <div className="flex items-center rounded-lg border border-border/70 p-0.5">
-              <button
-                type="button"
+            <div className="flex items-center gap-1 bg-muted/40 p-1 rounded-lg">
+              <Button
+                variant={view === "map" ? "secondary" : "ghost"}
+                size="sm"
                 onClick={() => setView("map")}
-                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                  view === "map"
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                className="h-8 text-xs px-3 rounded-md font-medium"
               >
-                <Map className="h-3.5 w-3.5" />
+                <Map className="h-3.5 w-3.5 mr-1.5" />
                 Map
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant={view === "list" ? "secondary" : "ghost"}
+                size="sm"
                 onClick={() => setView("list")}
-                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                  view === "list"
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                className="h-8 text-xs px-3 rounded-md font-medium"
               >
-                <List className="h-3.5 w-3.5" />
+                <List className="h-3.5 w-3.5 mr-1.5" />
                 List
-              </button>
+              </Button>
             </div>
           )}
         </div>
       </CardHeader>
-      <CardContent className="pt-4">
+      <CardContent className="p-6 flex flex-col flex-1">
         {loading ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Finding SNAP-authorized stores near {zipCode}...
+          <div className="flex items-center justify-center h-[250px] text-sm text-muted-foreground font-medium">
+            <Loader2 className="h-5 w-5 animate-spin mr-2" />
+            Finding SNAP-authorized stores...
           </div>
         ) : stores.length === 0 ? (
-          <div className="rounded-lg border border-border/70 bg-muted/20 px-4 py-3">
-            <p className="text-sm text-muted-foreground">
-              No SNAP-authorized stores found for ZIP {zipCode}.{" "}
-              <a
-                href="https://www.fns.usda.gov/snap/retailer-locator"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                Search on USDA SNAP Retailer Locator
-              </a>
+          <div className="rounded-xl border border-border/70 bg-muted/20 p-6 text-center">
+            <p className="text-sm text-muted-foreground font-medium mb-2">
+              No SNAP-authorized stores found for ZIP <span className="font-mono">{zipCode}</span>.
             </p>
+            <a
+              href="https://www.fns.usda.gov/snap/retailer-locator"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-primary hover:underline"
+            >
+              Search USDA Locator
+            </a>
           </div>
         ) : view === "map" ? (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">
-              <Store className="h-3.5 w-3.5" />
+          <div className="space-y-4 flex-1 flex flex-col min-h-[300px]">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
+              <Store className="h-4 w-4" />
               <span>
-                {stores.length} SNAP-authorized store{stores.length !== 1 ? "s" : ""} near{" "}
-                {zipCode}
+                <span className="font-mono font-semibold text-foreground">{stores.length}</span> store{stores.length !== 1 ? "s" : ""}
                 {incentiveCount > 0 && (
-                  <> · {incentiveCount} with Healthy Incentives</>
+                  <> · <span className="font-mono font-semibold text-foreground">{incentiveCount}</span> with Incentives</>
                 )}
               </span>
               {source === "fallback" && (
-                <Badge variant="secondary" className="text-[10px]">
-                  Cached
-                </Badge>
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Cached</Badge>
               )}
             </div>
-            <NearbyStoresMap stores={stores} />
+            <div className="rounded-xl overflow-hidden flex-1 border border-border/50">
+              <NearbyStoresMap stores={stores} />
+            </div>
           </div>
         ) : (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">
-              <Store className="h-3.5 w-3.5" />
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
+              <Store className="h-4 w-4" />
               <span>
-                {stores.length} SNAP-authorized store{stores.length !== 1 ? "s" : ""} near{" "}
-                {zipCode}
+                <span className="font-mono font-semibold text-foreground">{stores.length}</span> store{stores.length !== 1 ? "s" : ""}
                 {incentiveCount > 0 && (
-                  <> · {incentiveCount} with Healthy Incentives</>
+                  <> · <span className="font-mono font-semibold text-foreground">{incentiveCount}</span> with Incentives</>
                 )}
               </span>
               {source === "fallback" && (
-                <Badge variant="secondary" className="text-[10px]">
-                  Cached
-                </Badge>
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Cached</Badge>
               )}
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {displayed.map((store, idx) => (
                 <StoreCard key={`${store.name}-${idx}`} store={store} />
               ))}
             </div>
             {stores.length > 5 && (
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="w-full text-xs"
+                className="w-full text-sm font-medium rounded-xl"
                 onClick={() => setShowAll(!showAll)}
               >
                 {showAll ? "Show fewer" : `Show all ${stores.length} stores`}
@@ -303,8 +307,7 @@ function DashboardStoresSection({ zipCode }: { zipCode: string }) {
           </div>
         )}
       </CardContent>
-    </Card>
-  );
+    </Card>  );
 }
 
 export default function DashboardPage() {
@@ -392,9 +395,11 @@ export default function DashboardPage() {
   const generationPhase =
     generationElapsedSeconds < 15
       ? 0
-      : generationElapsedSeconds < 40
+      : generationElapsedSeconds < 30
         ? 1
-        : 2;
+        : generationElapsedSeconds < 60
+          ? 2
+          : 3;
   const generationProgressPercent = Math.min(
     95,
     Math.round((generationElapsedSeconds / ESTIMATED_GENERATION_SECONDS) * 100),
@@ -511,468 +516,539 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-secondary/30">
+    <div className="min-h-screen flex flex-col bg-background relative">
+      <div 
+        className="fixed inset-0 pointer-events-none z-0 opacity-[0.02]" 
+        style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}
+      />
       <AuthHeader />
 
-      <main className="flex-1 container mx-auto px-4 py-8 max-w-4xl">
-        {/* Greeting */}
-        <div className="mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-            {user
-              ? `Welcome back${user.email ? `, ${user.email.split("@")[0]}` : ""}`
-              : isGuest
-                ? "Welcome, Guest"
-                : "Your Dashboard"}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {setupComplete
-              ? "You're all set. Generate a meal plan or update your info below."
-              : "Complete the steps below to generate your first meal plan."}
-          </p>
-        </div>
+      <main className="flex-1 container mx-auto px-4 sm:px-6 pt-28 pb-12 max-w-5xl relative z-10">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="space-y-8"
+        >
+          {/* Greeting */}
+          <motion.div variants={itemVariants} className="mb-2">
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground">
+              {user
+                ? `Welcome back${user.email ? `, ${user.email.split("@")[0]}` : ""}`
+                : isGuest
+                  ? "Welcome, Guest"
+                  : "Your Dashboard"}
+            </h1>
+            <div className="mt-4 border-l-4 border-primary/40 pl-4 max-w-[65ch]">
+              <p className="text-lg text-muted-foreground font-medium">
+                {setupComplete
+                  ? "Welcome back — your pantry and budget are ready."
+                  : "You're close — finish setup to generate a plan."}
+              </p>
+            </div>
+          </motion.div>
 
-        {/* Setup progress */}
-        {!setupComplete && (
-          <Card className="mb-8 border-primary/20 bg-primary/[0.03]">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-primary" />
-                Setup Progress
-              </CardTitle>
-              <CardDescription>
-                {completedCount} of {steps.length} steps complete
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-2 mb-4">
-                {steps.map((s) => (
-                  <div
-                    key={s.label}
-                    className={`h-2 flex-1 rounded-full transition-colors ${
-                      s.done ? "bg-primary" : "bg-muted"
-                    }`}
-                  />
-                ))}
-              </div>
-              {steps
-                .filter((s) => !s.done)
-                .slice(0, 1)
-                .map((s) => (
-                  <Button key={s.label} asChild>
-                    <Link href={s.href}>
-                      Complete {s.label}
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Link>
-                  </Button>
-                ))}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Generate Plan CTA */}
-        {setupComplete && (
-          <Card className="mb-8 border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5 shadow-sm">
-            <CardContent className="flex flex-col gap-4 py-6 sm:flex-row sm:items-end sm:justify-between">
-              <div className="text-center sm:text-left">
-                <h2 className="text-xl font-bold mb-1">
-                  Ready to generate your meal plan
-                </h2>
-                <p className="text-muted-foreground">
-                  We&apos;ll create a personalized {budget?.horizon_days ?? 7}-day plan based on your
-                  profile, budget, and pantry.
-                </p>
-              </div>
-              <Button
-                size="lg"
-                className="h-11 px-6 self-stretch sm:self-auto sm:min-w-[180px]"
-                disabled={isGenerating}
-                onClick={() => setShowGenerateDialog(true)}
-              >
-                {isGenerating ? "Generating..." : "Generate Plan"}
-              </Button>
-            </CardContent>
-            {generateError && (
-              <div className="px-6 pb-4 -mt-2">
-                <p className="text-sm text-destructive">{generateError}</p>
-              </div>
-            )}
-            {isGenerating && generateStatus && (
-              <div className="px-6 pb-5 -mt-1">
-                <div className="rounded-xl border border-primary/20 bg-background/85 p-4 backdrop-blur-sm">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-medium">{generateStatus}</p>
-                    <p className="text-xs text-muted-foreground whitespace-nowrap">
-                      {Math.min(generationElapsedSeconds, ESTIMATED_GENERATION_SECONDS)}s / ~120s
-                    </p>
+          {/* Setup progress */}
+          {!setupComplete && (
+            <motion.div variants={itemVariants}>
+              <Card className="border-primary/15 bg-primary/[0.02] shadow-sm rounded-2xl overflow-hidden">
+                <CardHeader className="p-6 pb-4">
+                  <CardTitle className="text-xl font-extrabold tracking-tight flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-primary/70" />
+                    Getting started
+                  </CardTitle>
+                  <CardDescription className="font-medium text-sm mt-1">
+                    <span className="font-mono">{completedCount}</span> of <span className="font-mono">{steps.length}</span> steps complete
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-6 pt-0">
+                  <div className="flex gap-2 mb-6">
+                    {steps.map((s) => (
+                      <div
+                        key={s.label}
+                        className={`h-2.5 flex-1 rounded-full transition-all duration-500 ${
+                          s.done ? "bg-primary" : "bg-primary/10"
+                        }`}
+                      />
+                    ))}
                   </div>
-                  <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-primary transition-all duration-1000 ease-linear"
-                      style={{ width: `${generationProgressPercent}%` }}
-                    />
-                  </div>
-                  <div className="mt-3 grid grid-cols-3 gap-2">
-                    {[
-                      "Reading profile",
-                      "Matching pantry",
-                      "Building your plan",
-                    ].map((phase, index) => {
-                      const isComplete = index < generationPhase;
-                      const isActive = index === generationPhase;
-                      return (
-                        <div
-                          key={phase}
-                          className={`rounded-md border px-2 py-2 text-center text-[11px] sm:text-xs transition-colors ${
-                            isComplete
-                              ? "border-primary/30 bg-primary/5 text-foreground"
-                              : isActive
-                                ? "border-primary/40 bg-primary/10 text-foreground animate-pulse"
-                                : "border-border/70 text-muted-foreground"
-                          }`}
-                        >
-                          {phase}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-          </Card>
-        )}
-
-        {/* Recent Plans */}
-        {setupComplete && (
-          <Card className="mb-8">
-            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-              <div>
-                <CardTitle className="text-base">Recent Meal Plans</CardTitle>
-                <CardDescription>
-                  Reopen previous generated plans.
-                </CardDescription>
-              </div>
-              {recentPlans.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 gap-1.5"
-                  onClick={() => {
-                    setPlansEditMode((prev) => !prev);
-                    setPlansError(null);
-                  }}
-                >
-                  {plansEditMode ? (
-                    <>
-                      <Check className="w-3.5 h-3.5" />
-                      Done
-                    </>
-                  ) : (
-                    <>
-                      <Pencil className="w-3.5 h-3.5" />
-                      Edit
-                    </>
-                  )}
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent>
-              {recentPlans.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No plans yet. Generate your first plan above.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {recentPlans.map((plan) => (
-                    <div
-                      key={plan.planId}
-                      className="flex items-center justify-between rounded-lg border px-3 py-2"
-                    >
-                      <div>
-                        <p className="text-sm font-medium">
-                          {new Date(plan.createdAt).toLocaleString()}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Estimated total: $
-                          {plan.estimatedTotalCost.toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {plansEditMode ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                            disabled={deletingPlanId === plan.planId}
-                            onClick={() => handleDeletePlan(plan.planId)}
-                          >
-                            {deletingPlanId === plan.planId ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="w-4 h-4" />
-                            )}
-                          </Button>
-                        ) : (
-                          <Button size="sm" variant="outline" asChild>
-                            <Link
-                              href={`/plan?planId=${encodeURIComponent(plan.planId)}`}
-                            >
-                              View Plan
+                  <div className="flex flex-col gap-4">
+                    {steps.map((s) => (
+                      <div key={s.label} className="flex items-center justify-between bg-background p-4 rounded-xl border border-border/50 shadow-sm hover:shadow-md transition-shadow">
+                        <span className={`text-base flex items-center gap-3 ${s.done ? "text-primary font-extrabold tracking-tight" : "text-muted-foreground font-medium"}`}>
+                          {s.done && <Check className="w-5 h-5" />}
+                          {s.done ? `${s.label} saved` : `Add ${s.label.toLowerCase()}`}
+                        </span>
+                        {!s.done && (
+                          <Button variant="secondary" size="sm" asChild className="rounded-lg font-semibold">
+                            <Link href={s.href}>
+                              Set up your {s.label.toLowerCase()} <ArrowRight className="w-4 h-4 ml-1.5" />
                             </Link>
                           </Button>
                         )}
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {plansError && (
-                <p className="mt-3 text-sm text-destructive">{plansError}</p>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Nearby SNAP-Authorized Stores */}
-        {setupComplete && profile?.zip_code && (
-          <DashboardStoresSection zipCode={profile.zip_code} />
-        )}
-
-        {/* Info Cards Grid */}
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Profile Card */}
-          <Card>
-            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-              <div className="flex items-center gap-3">
-                <div className="bg-primary/10 w-10 h-10 rounded-lg flex items-center justify-center text-primary">
-                  <Users className="w-5 h-5" />
-                </div>
-                <div>
-                  <CardTitle className="text-base">Profile</CardTitle>
-                  <CardDescription className="text-xs">
-                    Household &amp; preferences
-                  </CardDescription>
-                </div>
-              </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                <Link href="/onboarding?edit=1">
-                  <Pencil className="w-3.5 h-3.5" />
-                </Link>
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {profile ? (
-                <dl className="space-y-2.5 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                    <dt className="text-muted-foreground">Household</dt>
-                    <dd className="ml-auto font-medium">
-                      {profile.household_size}{" "}
-                      {profile.household_size === 1 ? "person" : "people"}
-                    </dd>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
-                    <dt className="text-muted-foreground">ZIP Code</dt>
-                    <dd className="ml-auto font-medium">
-                      {profile.zip_code}
-                    </dd>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                    <dt className="text-muted-foreground">Cooking Time</dt>
-                    <dd className="ml-auto font-medium">
-                      {COOKING_LABELS[profile.cooking_time_level] ??
-                        profile.cooking_time_level}
-                    </dd>
-                  </div>
-                  {profile.dietary_flags.length > 0 && (
-                    <div className="flex items-start gap-2 pt-1">
-                      <Leaf className="w-3.5 h-3.5 text-muted-foreground mt-0.5" />
-                      <dt className="text-muted-foreground">Dietary</dt>
-                      <dd className="ml-auto flex flex-wrap justify-end gap-1">
-                        {profile.dietary_flags.map((flag) => (
-                          <Badge
-                            key={flag}
-                            variant="secondary"
-                            className="text-xs capitalize"
-                          >
-                            {flag}
-                          </Badge>
-                        ))}
-                      </dd>
-                    </div>
-                  )}
-                  {(profile.allergen_exclusions?.length ?? 0) > 0 && (
-                    <div className="flex items-start gap-2 pt-1">
-                      <AlertTriangle className="w-3.5 h-3.5 text-muted-foreground mt-0.5" />
-                      <dt className="text-muted-foreground">Allergens</dt>
-                      <dd className="ml-auto flex flex-wrap justify-end gap-1">
-                        {profile.allergen_exclusions?.map((allergen) => (
-                          <Badge
-                            key={allergen}
-                            variant="secondary"
-                            className="text-xs capitalize"
-                          >
-                            {allergen.replace("-", " ")}
-                          </Badge>
-                        ))}
-                      </dd>
-                    </div>
-                  )}
-                  {profile.eco_priority_enabled && (
-                    <div className="flex items-center gap-2">
-                      <Leaf className="w-3.5 h-3.5 text-muted-foreground" />
-                      <dt className="text-muted-foreground">Eco Priority</dt>
-                      <dd className="ml-auto">
-                        <Badge variant="secondary" className="text-xs">
-                          Enabled
-                        </Badge>
-                      </dd>
-                    </div>
-                  )}
-                </dl>
-              ) : (
-                <div className="text-center py-4">
-                  <p className="text-sm text-muted-foreground mb-3">
-                    No profile yet
-                  </p>
-                  <Button size="sm" variant="outline" asChild>
-                    <Link href="/onboarding">Set up profile</Link>
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Budget Card */}
-          <Card>
-            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-              <div className="flex items-center gap-3">
-                <div className="bg-primary/10 w-10 h-10 rounded-lg flex items-center justify-center text-primary">
-                  <Wallet className="w-5 h-5" />
-                </div>
-                <div>
-                  <CardTitle className="text-base">Budget</CardTitle>
-                  <CardDescription className="text-xs">
-                    SNAP balance &amp; planning window
-                  </CardDescription>
-                </div>
-              </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                <Link href="/budget">
-                  <Pencil className="w-3.5 h-3.5" />
-                </Link>
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {budget ? (
-                <dl className="space-y-2.5 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Wallet className="w-3.5 h-3.5 text-muted-foreground" />
-                    <dt className="text-muted-foreground">SNAP Balance</dt>
-                    <dd className="ml-auto font-medium text-lg">
-                      $
-                      {(budget.snap_remaining ?? 0).toLocaleString("en-US", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </dd>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                    <dt className="text-muted-foreground">Planning Window</dt>
-                    <dd className="ml-auto font-medium">
-                      {budget.horizon_days} days
-                    </dd>
-                  </div>
-                </dl>
-              ) : (
-                <div className="text-center py-4">
-                  <p className="text-sm text-muted-foreground mb-3">
-                    No budget set
-                  </p>
-                  <Button size="sm" variant="outline" asChild>
-                    <Link href="/budget">Set budget</Link>
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Pantry Card — full width */}
-          <Card className="md:col-span-2">
-            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-              <div className="flex items-center gap-3">
-                <div className="bg-accent/15 w-10 h-10 rounded-lg flex items-center justify-center text-accent-foreground">
-                  <Package className="w-5 h-5" />
-                </div>
-                <div>
-                  <CardTitle className="text-base">Pantry</CardTitle>
-                  <CardDescription className="text-xs">
-                    Items you have at home
-                  </CardDescription>
-                </div>
-              </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                <Link href="/pantry/edit">
-                  <Pencil className="w-3.5 h-3.5" />
-                </Link>
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {pantry && pantry.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {pantry
-                    .filter((i) => i.name?.trim())
-                    .map((item, idx) => (
-                      <Badge
-                        key={`${item.name}-${idx}`}
-                        variant="secondary"
-                        className="text-sm py-1 px-3"
-                      >
-                        {item.name}
-                        <span className="text-muted-foreground ml-1.5 text-xs">
-                          {item.quantity} {item.unit}
-                        </span>
-                      </Badge>
                     ))}
-                </div>
-              ) : (
-                <div className="text-center py-4">
-                  <p className="text-sm text-muted-foreground mb-3">
-                    No pantry items yet
-                  </p>
-                  <Button size="sm" variant="outline" asChild>
-                    <Link href="/pantry/edit">Add pantry items</Link>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Generate Plan CTA */}
+          {setupComplete && (
+            <motion.div variants={itemVariants}>
+              <Card className="border-primary/20 bg-card shadow-sm hover:shadow-primary/10 rounded-2xl overflow-hidden transition-all duration-700 ease-out hover:shadow-md motion-safe:hover:-translate-y-0.5">
+                <CardContent className="flex flex-col md:grid md:grid-cols-[1fr_auto] md:items-center p-4 md:p-6 lg:p-8 md:gap-6 lg:gap-10">
+                  <div className="text-left max-w-[42rem]">
+                    <h2 className="text-2xl font-extrabold tracking-tight leading-tight text-foreground">
+                      Generate meals that stay within your SNAP balance.
+                    </h2>
+                    <p className="text-base text-muted-foreground font-medium mt-3 md:mt-4">
+                      Built around your pantry, household of <span className="font-mono">{profile?.household_size ?? 1}</span>, and <span className="font-mono">{budget?.horizon_days ?? 7}</span>-day window.
+                    </p>
+                  </div>
+                  <Button
+                    size="lg"
+                    className="h-12 px-8 w-full md:w-auto shadow-sm hover:shadow-md hover:shadow-primary/20 transition-all duration-300 rounded-xl font-semibold mt-5 md:mt-0"
+                    disabled={isGenerating}
+                    onClick={() => setShowGenerateDialog(true)}
+                  >
+                    {isGenerating ? "Generating..." : (
+                      <>
+                        <Sparkles className="w-5 h-5 mr-2" />
+                        Build My Meal Plan
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+                {generateError && (
+                  <div className="px-4 md:px-6 lg:px-8 pb-4 md:pb-6 -mt-2">
+                    <div className="rounded-lg bg-destructive/5 border border-destructive/20 px-4 py-3 text-sm font-medium text-destructive">
+                      {generateError}
+                    </div>
+                  </div>
+                )}
+                {isGenerating && generateStatus && (
+                  <div className="px-4 md:px-6 lg:px-8 pb-4 md:pb-6 -mt-2">
+                    <div className="rounded-xl border border-primary/20 bg-background/85 p-5 backdrop-blur-sm shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-bold tracking-tight text-foreground">{generateStatus}</p>
+                        <p className="text-xs text-muted-foreground font-medium whitespace-nowrap">
+                          This usually takes about 2 minutes — we're being thorough.
+                        </p>
+                      </div>
+                      <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-primary transition-all duration-1000 ease-in-out"
+                          style={{ width: `${generationProgressPercent}%` }}
+                        />
+                      </div>
+                      <div className="mt-4 grid grid-cols-4 gap-3">
+                        {[
+                          "Reviewing pantry...",
+                          "Building meals...",
+                          "Checking budget...",
+                          "Creating your list",
+                        ].map((phase, index) => {
+                          const isComplete = index < generationPhase;
+                          const isActive = index === generationPhase;
+                          return (
+                            <div
+                              key={phase}
+                              className={`rounded-lg border px-2 py-2.5 text-center text-xs font-medium transition-colors ${
+                                isComplete
+                                  ? "border-primary/30 bg-primary/5 text-foreground"
+                                  : isActive
+                                    ? "border-primary/40 bg-primary/10 text-foreground animate-pulse"
+                                    : "border-border/70 text-muted-foreground"
+                              }`}
+                            >
+                              {phase}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Main Content Grid: Plans + Stores */}
+          {setupComplete && (
+            <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              {/* Previous Plans */}
+              <div className="lg:col-span-7 flex flex-col h-full">
+                <Card className="shadow-sm rounded-2xl border-border/80 flex flex-col h-full bg-background">
+                  <CardHeader className="p-6 border-b border-border/50">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-lg font-extrabold tracking-tight">Previous Plans</CardTitle>
+                        <CardDescription className="text-sm font-medium mt-1">
+                          Tap to reopen — prices reflect estimates at the time they were created.
+                        </CardDescription>
+                      </div>
+                      {recentPlans.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 gap-1.5 rounded-lg"
+                          onClick={() => {
+                            setPlansEditMode((prev) => !prev);
+                            setPlansError(null);
+                          }}
+                        >
+                          {plansEditMode ? (
+                            <>
+                              <Check className="w-4 h-4" />
+                              <span className="font-medium">Done</span>
+                            </>
+                          ) : (
+                            <>
+                              <Pencil className="w-4 h-4" />
+                              <span className="font-medium">Edit</span>
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0 flex-1 flex flex-col">
+                    {recentPlans.length === 0 ? (
+                      <div className="p-6 text-sm text-muted-foreground font-medium text-center">
+                        No plans yet — generate one above and it will appear here.
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-border/50 flex-1">
+                        {recentPlans.map((plan) => (
+                          <div
+                            key={plan.planId}
+                            className="flex items-center justify-between p-4 sm:px-6 hover:bg-muted/30 transition-colors group"
+                          >
+                            <div>
+                              <p className="text-sm font-extrabold tracking-tight text-foreground">
+                                {new Date(plan.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                              </p>
+                              <p className="text-sm text-muted-foreground font-medium mt-0.5">
+                                Est. total: <span className="font-mono text-foreground font-semibold">${plan.estimatedTotalCost.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              {plansEditMode ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-destructive hover:bg-destructive/10 hover:text-destructive rounded-lg"
+                                  disabled={deletingPlanId === plan.planId}
+                                  onClick={() => handleDeletePlan(plan.planId)}
+                                >
+                                  {deletingPlanId === plan.planId ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-4 h-4" />
+                                  )}
+                                </Button>
+                              ) : (
+                                <Button size="sm" variant="outline" asChild className="rounded-lg font-medium shadow-sm transition-all group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary">
+                                  <Link
+                                    href={`/plan?planId=${encodeURIComponent(plan.planId)}`}
+                                  >
+                                    View Plan
+                                  </Link>
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {plansError && (
+                      <div className="m-4 rounded-lg bg-destructive/5 border border-destructive/20 px-4 py-3 text-sm font-medium text-destructive">
+                        {plansError}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Nearby SNAP-Authorized Stores */}
+              <div className="lg:col-span-5 flex flex-col h-full">
+                {profile?.zip_code ? (
+                  <DashboardStoresSection zipCode={profile.zip_code} />
+                ) : (
+                  <div className="h-full rounded-2xl border border-dashed border-border/80 flex items-center justify-center p-6 text-muted-foreground text-sm font-medium text-center bg-background">
+                    Set your ZIP code in your profile to see nearby SNAP-authorized stores.
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Info Cards Grid */}
+          <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+            {/* Profile Card */}
+            <Card className="shadow-sm rounded-2xl border-border/80 flex flex-col bg-background">
+              <CardHeader className="p-6 border-b border-border/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-primary/8 w-10 h-10 rounded-xl flex items-center justify-center text-primary">
+                      <Users className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg font-extrabold tracking-tight">Profile</CardTitle>
+                      <CardDescription className="text-sm font-medium mt-0.5">
+                        Household profile
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" asChild>
+                    <Link href="/onboarding?edit=1">
+                      <Pencil className="w-4 h-4" />
+                    </Link>
                   </Button>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+              </CardHeader>
+              <CardContent className="p-6 flex-1">
+                {profile ? (
+                  <dl className="grid grid-cols-1 gap-y-4 text-sm">
+                    <div className="flex items-center justify-between gap-4">
+                      <dt className="text-muted-foreground font-medium flex items-center gap-2 whitespace-nowrap">
+                        <Users className="w-4 h-4" /> Household
+                      </dt>
+                      <dd className="font-mono font-semibold text-foreground text-right">
+                        {profile.household_size} <span className="font-sans text-muted-foreground font-medium">{profile.household_size === 1 ? "person" : "people"}</span>
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <dt className="text-muted-foreground font-medium flex items-center gap-2 whitespace-nowrap">
+                        <MapPin className="w-4 h-4" /> ZIP Code
+                      </dt>
+                      <dd className="font-mono font-semibold text-foreground text-right">
+                        {profile.zip_code}
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <dt className="text-muted-foreground font-medium flex items-center gap-2 whitespace-nowrap">
+                        <Clock className="w-4 h-4" /> Cooking Time
+                      </dt>
+                      <dd className="font-medium text-foreground text-right">
+                        {COOKING_LABELS[profile.cooking_time_level] ?? profile.cooking_time_level}
+                      </dd>
+                    </div>
+                    {profile.dietary_flags.length > 0 && (
+                      <div className="flex items-start justify-between gap-4 pt-1">
+                        <dt className="text-muted-foreground font-medium flex items-center gap-2 whitespace-nowrap mt-1">
+                          <Leaf className="w-4 h-4" /> Dietary
+                        </dt>
+                        <dd className="flex flex-wrap justify-end gap-1.5">
+                          {profile.dietary_flags.map((flag) => (
+                            <Badge key={flag} variant="secondary" className="px-2 py-0.5 text-xs font-medium rounded-md bg-muted hover:bg-muted/80">
+                              {flag}
+                            </Badge>
+                          ))}
+                        </dd>
+                      </div>
+                    )}
+                    {(profile.allergen_exclusions?.length ?? 0) > 0 && (
+                      <div className="flex items-start justify-between gap-4 pt-1">
+                        <dt className="text-muted-foreground font-medium flex items-center gap-2 whitespace-nowrap mt-1">
+                          <AlertTriangle className="w-4 h-4" /> Allergens
+                        </dt>
+                        <dd className="flex flex-wrap justify-end gap-1.5">
+                          {profile.allergen_exclusions?.map((allergen) => (
+                            <Badge key={allergen} variant="secondary" className="px-2 py-0.5 text-xs font-medium rounded-md bg-muted hover:bg-muted/80">
+                              {allergen.replace("-", " ")}
+                            </Badge>
+                          ))}
+                        </dd>
+                      </div>
+                    )}
+                    {profile.eco_priority_enabled && (
+                      <div className="flex items-center justify-between gap-4 pt-1">
+                        <dt className="text-muted-foreground font-medium flex items-center gap-2 whitespace-nowrap">
+                          <Leaf className="w-4 h-4" /> Eco Priority
+                        </dt>
+                        <dd className="text-right">
+                          <Badge variant="secondary" className="px-2 py-0.5 text-xs font-medium rounded-md bg-muted hover:bg-muted/80 border-border/50">
+                            Enabled
+                          </Badge>
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                ) : (
+                  <div className="text-center py-6">
+                    <p className="text-sm text-muted-foreground font-medium mb-4">
+                      No profile yet
+                    </p>
+                    <Button size="sm" variant="outline" className="rounded-lg font-medium" asChild>
+                      <Link href="/onboarding">Set up profile</Link>
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-        {/* Guest upsell */}
-        {isGuest && (
-          <Card className="mt-8 border-dashed">
-            <CardContent className="flex flex-col sm:flex-row items-center gap-4 py-6">
-              <div className="flex-1 text-center sm:text-left">
-                <p className="font-medium">Save your data across devices</p>
-                <p className="text-sm text-muted-foreground">
-                  Create an account to keep your profile, budget, and pantry
-                  synced.
-                </p>
-              </div>
-              <Button variant="outline" asChild>
-                <Link href="/auth/sign-up?redirect=/dashboard">
-                  Create Account
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+            {/* Budget Card */}
+            <Card className="shadow-sm rounded-2xl border-border/80 flex flex-col bg-background">
+              <CardHeader className="p-6 border-b border-border/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-primary/10 w-10 h-10 rounded-xl flex items-center justify-center text-primary">
+                      <Wallet className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg font-extrabold tracking-tight">Budget</CardTitle>
+                      <CardDescription className="text-sm font-medium mt-0.5">
+                        Your SNAP plan
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" asChild>
+                    <Link href="/budget">
+                      <Pencil className="w-4 h-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6 flex-1 flex flex-col justify-between">
+                {budget ? (
+                  <div className="space-y-6">
+                    <dl className="grid grid-cols-1 gap-y-5 text-sm">
+                      <div className="flex items-center justify-between gap-4">
+                        <dt className="text-muted-foreground font-medium flex items-center gap-2 whitespace-nowrap">
+                          <Wallet className="w-4 h-4" /> SNAP Balance
+                        </dt>
+                        <dd className="font-mono text-2xl font-extrabold tracking-tight text-foreground text-right">
+                          ${(budget.snap_remaining ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </dd>
+                      </div>
+                      <div className="flex items-center justify-between gap-4">
+                        <dt className="text-muted-foreground font-medium flex items-center gap-2 whitespace-nowrap">
+                          <Clock className="w-4 h-4" /> Planning Window
+                        </dt>
+                        <dd className="font-mono font-semibold text-foreground text-right">
+                          {budget.horizon_days} <span className="font-sans text-muted-foreground font-medium">days</span>
+                        </dd>
+                      </div>
+                    </dl>
+                    <p className="text-sm text-muted-foreground font-medium border-t border-border/50 pt-5">
+                      Available for the next <span className="font-mono font-semibold text-foreground">{budget.horizon_days}</span> days
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-center py-6">
+                    <p className="text-sm text-muted-foreground font-medium mb-4">
+                      No budget set
+                    </p>
+                    <Button size="sm" variant="outline" className="rounded-lg font-medium" asChild>
+                      <Link href="/budget">Set budget</Link>
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Pantry Card — full width */}
+            <Card className="md:col-span-2 shadow-sm rounded-2xl border-border/80 bg-background">
+              <CardHeader className="p-6 border-b border-border/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-accent/15 w-10 h-10 rounded-xl flex items-center justify-center text-accent-foreground">
+                      <Package className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg font-extrabold tracking-tight">Pantry</CardTitle>
+                      <CardDescription className="text-sm font-medium mt-0.5">
+                        What's at home right now
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" asChild>
+                    <Link href="/pantry/edit">
+                      <Pencil className="w-4 h-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                {pantry && pantry.length > 0 ? (
+                  <div className="space-y-5">
+                    {(() => {
+                      const expiringItems = pantry.filter(i => {
+                        if (!i.expires_on) return false;
+                        const expDate = new Date(i.expires_on);
+                        const today = new Date();
+                        expDate.setHours(0, 0, 0, 0);
+                        today.setHours(0, 0, 0, 0);
+                        const daysUntil = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                        return daysUntil <= 3 && daysUntil >= 0;
+                      });
+                      if (expiringItems.length > 0) {
+                        return (
+                          <div className="flex items-center">
+                            <Badge variant="destructive" className="px-3 py-1 text-xs font-medium rounded-lg">
+                              <span className="font-mono font-semibold mr-1">{expiringItems.length}</span> item{expiringItems.length === 1 ? "" : "s"} expiring soon
+                            </Badge>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                    <div className="flex flex-wrap gap-2.5">
+                      {pantry
+                        .filter((i) => i.name?.trim())
+                        .map((item, idx) => (
+                          <Badge
+                            key={`${item.name}-${idx}`}
+                            variant="secondary"
+                            className="text-sm py-1.5 px-3 rounded-xl bg-muted/60 hover:bg-muted border border-border/50"
+                          >
+                            <span className="font-medium text-foreground">{item.name}</span>
+                            <span className="text-muted-foreground ml-2 font-mono text-xs">
+                              {item.quantity} {item.unit}
+                            </span>
+                          </Badge>
+                        ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-6">
+                    <p className="text-sm text-muted-foreground font-medium mb-4">
+                      Your pantry is empty — add items so the plan knows what you have.
+                    </p>
+                    <Button size="sm" variant="outline" className="rounded-lg font-medium" asChild>
+                      <Link href="/pantry/edit">Add pantry items</Link>
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Guest upsell */}
+          {isGuest && (
+            <motion.div variants={itemVariants}>
+              <Card className="border-dashed border-2 border-primary/20 bg-primary/[0.02] shadow-sm rounded-2xl">
+                <CardContent className="flex flex-col sm:flex-row items-center gap-6 p-6 sm:p-8">
+                  <div className="flex-1 text-center sm:text-left">
+                    <p className="text-lg font-extrabold tracking-tight text-foreground">Your data lives here</p>
+                    <p className="text-base text-muted-foreground font-medium mt-1">
+                      Create an account to keep your profile, budget, and pantry safe across devices.
+                    </p>
+                  </div>
+                  <Button variant="outline" size="lg" className="rounded-xl font-semibold border-primary/20 hover:bg-primary/5 shadow-sm" asChild>
+                    <Link href="/auth/sign-up?redirect=/dashboard">
+                      Create a free account
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </motion.div>
+
         {/* Generate Plan Preferences Dialog */}
         <Dialog
           open={showGenerateDialog}
@@ -983,16 +1059,15 @@ export default function DashboardPage() {
             }
           }}
         >
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Customize your plan</DialogTitle>
-              <DialogDescription>
-                Add any preferences for your meal plan, or leave blank to use
-                your profile defaults.
+          <DialogContent className="sm:max-w-md rounded-2xl p-6">
+            <DialogHeader className="space-y-2 mb-2">
+              <DialogTitle className="text-xl font-extrabold tracking-tight">What are you in the mood for?</DialogTitle>
+              <DialogDescription className="text-sm font-medium">
+                Add any preferences, or leave blank — we'll use your profile.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex flex-wrap gap-2">
                 {["High protein", "Low carb", "Quick meals", "Kid-friendly", "More vegetables"].map(
                   (chip) => {
@@ -1003,9 +1078,9 @@ export default function DashboardPage() {
                       <button
                         key={chip}
                         type="button"
-                        className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+                        className={`rounded-xl border px-4 py-2 text-sm font-medium transition-all duration-150 ${
                           isActive
-                            ? "bg-primary text-primary-foreground border-primary"
+                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
                             : "bg-secondary/50 text-foreground border-border hover:bg-secondary"
                         }`}
                         onClick={() => {
@@ -1031,37 +1106,37 @@ export default function DashboardPage() {
               </div>
 
               <textarea
-                className="w-full min-h-[80px] rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none resize-none"
-                placeholder="e.g., high protein, low carb, more vegetables, no seafood..."
+                className="w-full min-h-[100px] rounded-xl border border-input bg-transparent px-4 py-3 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none resize-none font-medium"
+                placeholder="e.g., more soups this week, easy breakfasts, no seafood..."
                 maxLength={500}
                 value={preferencesInput}
                 onChange={(e) => setPreferencesInput(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground text-right">
+              <p className="text-xs text-muted-foreground font-mono text-right">
                 {preferencesInput.length}/500
               </p>
             </div>
 
-            <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <DialogFooter className="flex-col-reverse gap-3 sm:flex-row sm:justify-end mt-2">
               <Button
                 variant="outline"
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto rounded-xl font-semibold"
                 onClick={() => {
                   setShowGenerateDialog(false);
                   setPreferencesInput("");
                 }}
               >
-                Cancel
+                Never mind
               </Button>
               <Button
-                className="w-full sm:w-auto sm:min-w-[150px]"
+                className="w-full sm:w-auto sm:min-w-[150px] rounded-xl font-semibold shadow-sm hover:shadow-md transition-shadow"
                 onClick={() => {
                   setShowGenerateDialog(false);
                   handleGeneratePlan(preferencesInput.trim() || undefined);
                   setPreferencesInput("");
                 }}
               >
-                Generate Plan
+                Generate My Plan
               </Button>
             </DialogFooter>
           </DialogContent>
