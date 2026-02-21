@@ -334,44 +334,39 @@ export async function POST(req: Request) {
     );
   }
 
-  // Fetch user context + retrieval in parallel
-  const [contextResult, retrievalResult] = await Promise.all([
-    fetchUserContext(userId, toggles),
-    retrieve({
+  // Fetch user context first so we can use jurisdiction for retrieval
+  const { userCtx, jurisdiction } = await fetchUserContext(userId, toggles);
+
+  // Retrieve KB chunks with jurisdiction-aware logic:
+  //  - With jurisdiction (from profile ZIP): prefer state-specific, fall back to US
+  //  - Without jurisdiction: restrict to US-only to avoid surfacing inapplicable state rules
+  let chunks: RetrievedChunk[] = [];
+  try {
+    const primaryJurisdiction = jurisdiction ?? "US";
+    const primaryResult = await retrieve({
       query: userQuery,
       topK: 5,
       maxTokens: 3000,
-      jurisdiction:
-        toggles.useProfile ? undefined : undefined,
-    }).catch((err) => {
-      console.error(`[coach:${requestId}] retrieval error:`, err);
-      return null;
-    }),
-  ]);
+      jurisdiction: primaryJurisdiction,
+    });
+    chunks = primaryResult.chunks;
 
-  const { userCtx, jurisdiction } = contextResult;
-  let chunks: RetrievedChunk[] = [];
-
-  if (retrievalResult) {
-    chunks = retrievalResult.chunks;
-
-    // Re-run with jurisdiction if we got one from profile
-    if (jurisdiction && chunks.length === 0) {
-      try {
-        const retryResult = await retrieve({
-          query: userQuery,
-          topK: 5,
-          maxTokens: 3000,
-          jurisdiction,
-        });
-        chunks = retryResult.chunks;
-      } catch {
-        // use empty chunks
-      }
+    // If we used a state jurisdiction and got no chunks, fall back to US
+    if (jurisdiction && jurisdiction !== "US" && chunks.length === 0) {
+      const fallbackResult = await retrieve({
+        query: userQuery,
+        topK: 5,
+        maxTokens: 3000,
+        jurisdiction: "US",
+      });
+      chunks = fallbackResult.chunks;
     }
+  } catch (err) {
+    console.error(`[coach:${requestId}] retrieval error:`, err);
   }
 
-  const systemPrompt = buildCoachSystemPrompt(chunks, toggles, userCtx);
+  const hasLocation = Boolean(userCtx.profile?.zip_code);
+  const systemPrompt = buildCoachSystemPrompt(chunks, toggles, userCtx, hasLocation);
 
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {

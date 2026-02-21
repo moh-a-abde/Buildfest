@@ -142,9 +142,21 @@ export function buildCoachSystemPrompt(
   chunks: RetrievedChunk[],
   toggles: CoachContextToggles,
   userContext?: UserContext,
+  hasLocation?: boolean,
 ): string {
   const sourcesBlock = formatChunksForPrompt(chunks);
   const contextBlock = formatUserContext(toggles, userContext);
+
+  const locationBlock = hasLocation
+    ? `## Location and State-Specific Guidance
+- The user's ZIP code / state is available in the User Profile above.
+- You may reference state-specific sources if they appear in RETRIEVED SOURCES below; otherwise stick to US-wide guidance.
+- Always note when guidance is state-specific vs. general (US-wide).`
+    : `## Location and State-Specific Guidance
+- The user has NOT shared a ZIP code or state.
+- When the user asks about state-specific SNAP rules (recertification timelines, reporting requirements, benefit amounts, application processes, etc.), do NOT give state-specific guidance.
+- Instead: provide general US-wide information from the retrieved sources, cite appropriately, and add a safety_note: "SNAP rules vary by state. For state-specific details, I'd need your ZIP code or state — you can add it in your profile settings. You can also contact your state SNAP office or visit benefits.gov."
+- When you DO have the user's location, you may reference state-specific sources.`;
 
   return `You are NourishMe Coach, a friendly and supportive nutrition education assistant for SNAP (food stamp) recipients and budget-conscious families.
 
@@ -168,6 +180,8 @@ export function buildCoachSystemPrompt(
 - NEVER use judgmental, shaming, or condescending language about food choices or financial situations.
 - NEVER invent statistics, studies, or specific numbers you aren't confident about. Say "I'm not sure of the exact figure" instead.
 - NEVER fabricate citations. Only cite chunks that appear in RETRIEVED SOURCES below.
+
+${locationBlock}
 
 ## Citation Rules
 - When making a factual claim about nutrition, SNAP policy, or cooking guidance, you MUST cite the relevant source chunk.

@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/tooltip";
 import { AuthHeader } from "@/components/AuthHeader";
 import { GroceryList } from "@/components/GroceryList";
+import { AskCoachButton } from "@/components/AskCoachButton";
 import type {
   GeneratePlanResponse,
   Meal,
@@ -440,7 +441,7 @@ function DayColumn({
             onClick={() => onMealClick(meal)}
           />
         ))}
-        <div className="mt-auto pt-4 px-3 border-t border-border/40 text-xs text-muted-foreground">
+        <div className="mt-auto pt-4 px-3 border-t border-border/40 text-xs text-muted-foreground space-y-2.5">
           <p className="flex items-center justify-between gap-2 opacity-80">
             <span className="font-medium">Pantry items used</span>
             <span className="font-mono font-bold text-foreground tabular-nums">
@@ -452,6 +453,11 @@ function DayColumn({
               )}
             </span>
           </p>
+          <AskCoachButton
+            prompt={`What are good swaps for today's meals? The meals are: ${meals.map((m) => m.name).join(", ")}.`}
+            label="Get meal tips"
+            tooltip="Ask Coach about today's meals"
+          />
         </div>
       </CardContent>
     </Card>
@@ -613,6 +619,20 @@ function MealDetailDrawer({
               {meal.notes ||
                 "Freeze extra portions within 2 days to prevent waste."}
             </p>
+          </div>
+
+          {/* 5. Ask Coach */}
+          <div className="flex flex-wrap gap-2">
+            <AskCoachButton
+              prompt={`How can I make ${meal.name} lower sodium?`}
+              label="Lower sodium tips"
+              tooltip="Ask Coach for healthier options"
+            />
+            <AskCoachButton
+              prompt={`What are good substitutes for ingredients in ${meal.name}?`}
+              label="Swap ingredients"
+              tooltip="Find budget-friendly alternatives"
+            />
           </div>
 
         </div>

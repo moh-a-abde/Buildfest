@@ -56,6 +56,7 @@ const itemVariants = {
 };
 import { AuthHeader } from "@/components/AuthHeader";
 import { StoreCard } from "@/components/GroceryList";
+import { AskCoachButton } from "@/components/AskCoachButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { buildGeneratePlanPayload } from "@/lib/plan-payload";
 import type { CookingTimeLevel } from "@/lib/types";
@@ -209,9 +210,16 @@ function DashboardStoresSection({ zipCode }: { zipCode: string }) {
               <MapPin className="w-5 h-5 text-primary" />
               Nearby Stores
             </h3>
-            <CardDescription className="mt-1 text-sm font-medium">
-              SNAP-authorized near <span className="font-mono">{zipCode}</span>
-            </CardDescription>
+            <div className="flex items-center gap-3 mt-1">
+              <CardDescription className="text-sm font-medium">
+                SNAP-authorized near <span className="font-mono">{zipCode}</span>
+              </CardDescription>
+              <AskCoachButton
+                prompt="What SNAP items are eligible at stores near me? Which stores have Healthy Incentives programs?"
+                label="Ask Coach"
+                tooltip="Get tips on SNAP shopping at nearby stores"
+              />
+            </div>
           </div>
           {!loading && stores.length > 0 && (
             <div className="flex items-center gap-1 bg-muted/40 p-1 rounded-lg">

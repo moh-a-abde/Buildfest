@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { Leaf, Maximize2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,13 +13,36 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { CoachChat } from "@/components/CoachChat";
+import { useCoach } from "@/contexts/CoachContext";
 
-interface CoachDockProps {
-  initialPrompt?: string;
-}
+export function CoachDock() {
+  const { open, initialPrompt, openCoach, closeCoach } = useCoach();
+  const fabRef = useRef<HTMLButtonElement>(null);
+  const chatKeyRef = useRef(0);
 
-export function CoachDock({ initialPrompt }: CoachDockProps) {
-  const [open, setOpen] = useState(false);
+  // Force CoachChat remount when opening with a new prompt so initialPrompt fires fresh
+  useEffect(() => {
+    if (open && initialPrompt) {
+      chatKeyRef.current += 1;
+    }
+  }, [open, initialPrompt]);
+
+  const handleOpenChange = useCallback(
+    (next: boolean) => {
+      if (next) openCoach();
+      else closeCoach();
+    },
+    [openCoach, closeCoach],
+  );
+
+  const handleFabClick = useCallback(() => openCoach(), [openCoach]);
+
+  // Return focus to FAB when Sheet closes
+  useEffect(() => {
+    if (!open) {
+      fabRef.current?.focus();
+    }
+  }, [open]);
 
   return (
     <>
@@ -34,7 +57,8 @@ export function CoachDock({ initialPrompt }: CoachDockProps) {
             className="fixed bottom-6 right-6 z-50"
           >
             <button
-              onClick={() => setOpen(true)}
+              ref={fabRef}
+              onClick={handleFabClick}
               className="group relative flex items-center justify-center w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               aria-label="Open NourishMe Coach"
             >
@@ -46,11 +70,12 @@ export function CoachDock({ initialPrompt }: CoachDockProps) {
       </AnimatePresence>
 
       {/* Chat Sheet */}
-      <Sheet open={open} onOpenChange={setOpen}>
+      <Sheet open={open} onOpenChange={handleOpenChange}>
         <SheetContent
           side="right"
           showCloseButton
           className="w-full sm:max-w-md p-0 flex flex-col"
+          aria-label="NourishMe Coach chat"
         >
           <SheetHeader className="px-4 py-3 border-b flex-shrink-0">
             <div className="flex items-center justify-between">
@@ -59,14 +84,20 @@ export function CoachDock({ initialPrompt }: CoachDockProps) {
                   <Leaf className="w-4 h-4" />
                 </div>
                 <div>
-                  <SheetTitle className="text-base">NourishMe Coach</SheetTitle>
+                  <SheetTitle className="text-base">
+                    NourishMe Coach
+                  </SheetTitle>
                   <SheetDescription className="text-xs">
                     Nutrition &amp; SNAP guidance
                   </SheetDescription>
                 </div>
               </div>
               <Button variant="ghost" size="icon-xs" asChild>
-                <Link href="/coach" onClick={() => setOpen(false)} aria-label="Open full chat">
+                <Link
+                  href="/coach"
+                  onClick={() => closeCoach()}
+                  aria-label="Open full chat"
+                >
                   <Maximize2 className="w-3.5 h-3.5" />
                 </Link>
               </Button>
@@ -74,7 +105,11 @@ export function CoachDock({ initialPrompt }: CoachDockProps) {
           </SheetHeader>
 
           <div className="flex-1 min-h-0">
-            <CoachChat initialPrompt={initialPrompt} compact />
+            <CoachChat
+              key={chatKeyRef.current}
+              initialPrompt={initialPrompt}
+              compact
+            />
           </div>
         </SheetContent>
       </Sheet>

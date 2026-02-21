@@ -48,6 +48,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { BarcodeProductPreviewCard } from "@/components/BarcodeProductPreviewCard";
+import { AskCoachButton } from "@/components/AskCoachButton";
 import type { BarcodeProduct } from "@/lib/barcode-lookup";
 import type { HorizonDays } from "@/lib/types";
 
@@ -427,6 +428,13 @@ export default function PantryPage() {
           <p className="text-muted-foreground mt-2 text-base md:text-lg">
             Tell us your budget and what you already have at home.
           </p>
+          <div className="mt-3 flex justify-center">
+            <AskCoachButton
+              prompt="What can I make with my pantry items? Help me use what I have efficiently."
+              label="Ask Coach for pantry tips"
+              tooltip="Get ideas for using your pantry items"
+            />
+          </div>
         </div>
 
         <Form {...form}>

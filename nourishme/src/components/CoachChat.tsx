@@ -1,19 +1,27 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import {
   AlertTriangle,
   ArrowUp,
   BookOpen,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Copy,
   ExternalLink,
   Leaf,
   Loader2,
   RotateCcw,
   Square,
   User,
+  Wallet,
+  ShoppingBasket,
+  UserCircle,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +42,12 @@ interface Citation {
   title: string;
   chunk_id: string;
   quote?: string;
+}
+
+interface ContextToggles {
+  useProfile: boolean;
+  usePantry: boolean;
+  useBudget: boolean;
 }
 
 interface CoachChatProps {
@@ -59,11 +73,148 @@ function extractDataParts(parts: Array<{ type: string; data?: unknown }>) {
   return { citations, followUps, safetyNotes };
 }
 
+function extractTextFromParts(parts: Array<{ type: string; text?: string }>) {
+  return parts
+    .filter((p) => p.type === "text" && p.text)
+    .map((p) => p.text)
+    .join("");
+}
+
+function CitationsList({
+  citations,
+  compact,
+}: {
+  citations: Citation[];
+  compact?: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const threshold = 3;
+  const showToggle = citations.length >= threshold;
+  const displayed = showToggle && !expanded ? citations.slice(0, 2) : citations;
+
+  return (
+    <div className="ml-10 max-w-[85%]">
+      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
+        <BookOpen className="w-3 h-3" />
+        <span>
+          Sources{" "}
+          {citations.length > 2 && (
+            <span className="text-muted-foreground/60">
+              ({citations.length})
+            </span>
+          )}
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {displayed.map((citation, i) => (
+          <a
+            key={i}
+            href={citation.source_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors text-muted-foreground"
+            title={citation.quote || citation.title}
+          >
+            <ExternalLink className="w-2.5 h-2.5" />
+            <span className={cn("truncate", compact ? "max-w-[140px]" : "max-w-[180px]")}>
+              {citation.title}
+            </span>
+          </a>
+        ))}
+      </div>
+      {showToggle && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-primary/80 hover:text-primary transition-colors"
+          aria-expanded={expanded}
+        >
+          {expanded ? (
+            <>
+              <ChevronUp className="w-3 h-3" />
+              Show fewer
+            </>
+          ) : (
+            <>
+              <ChevronDown className="w-3 h-3" />
+              View all {citations.length} sources
+            </>
+          )}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      toast.success("Copied to clipboard");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Failed to copy");
+    }
+  }, [text]);
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded-md hover:bg-muted/80 text-muted-foreground hover:text-foreground"
+      aria-label="Copy answer"
+      title="Copy answer"
+    >
+      {copied ? (
+        <Check className="w-3 h-3 text-green-600" />
+      ) : (
+        <Copy className="w-3 h-3" />
+      )}
+    </button>
+  );
+}
+
+function ContextToggleChip({
+  active,
+  onToggle,
+  icon: Icon,
+  label,
+}: {
+  active: boolean;
+  onToggle: () => void;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={active}
+      onClick={onToggle}
+      className={cn(
+        "inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border transition-colors font-medium",
+        active
+          ? "bg-primary/10 text-primary border-primary/30"
+          : "bg-background text-muted-foreground border-border hover:bg-muted/50",
+      )}
+    >
+      <Icon className="w-3 h-3" />
+      {label}
+    </button>
+  );
+}
+
 export function CoachChat({ initialPrompt, compact = false }: CoachChatProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [input, setInput] = useState("");
   const sentInitialRef = useRef(false);
+  const [contextToggles, setContextToggles] = useState<ContextToggles>({
+    useProfile: false,
+    usePantry: false,
+    useBudget: false,
+  });
 
   const {
     messages,
@@ -86,21 +237,30 @@ export function CoachChat({ initialPrompt, compact = false }: CoachChatProps) {
   useEffect(() => {
     if (initialPrompt && !sentInitialRef.current && status === "ready") {
       sentInitialRef.current = true;
-      sendMessage({ text: initialPrompt });
+      sendMessage(
+        { text: initialPrompt },
+        { body: { contextToggles } },
+      );
     }
-  }, [initialPrompt, status, sendMessage]);
+  }, [initialPrompt, status, sendMessage, contextToggles]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = input.trim();
     if (!trimmed || isLoading) return;
-    sendMessage({ text: trimmed });
+    sendMessage(
+      { text: trimmed },
+      { body: { contextToggles } },
+    );
     setInput("");
   }
 
   function handlePromptClick(prompt: string) {
     if (isLoading) return;
-    sendMessage({ text: prompt });
+    sendMessage(
+      { text: prompt },
+      { body: { contextToggles } },
+    );
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -110,18 +270,51 @@ export function CoachChat({ initialPrompt, compact = false }: CoachChatProps) {
     }
   }
 
+  function toggleContext(key: keyof ContextToggles) {
+    setContextToggles((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
+
   return (
     <div className={cn("flex flex-col", compact ? "h-full" : "h-[600px]")}>
       {/* Disclaimer */}
-      <div className="px-4 py-2 text-[11px] text-muted-foreground bg-muted/40 border-b leading-snug">
-        NourishMe Coach provides general nutrition and SNAP information. It is not
-        medical advice and does not replace caseworkers or nutritionists.
+      <div className="px-4 py-2 text-[11px] text-muted-foreground bg-muted/40 border-b leading-snug flex items-start gap-1.5">
+        <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+        <span>
+          This is general information, not medical or legal advice. For official
+          eligibility and rules, consult your state SNAP agency or visit{" "}
+          <a href="https://benefits.gov" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">benefits.gov</a>.
+        </span>
+      </div>
+
+      {/* Context toggles */}
+      <div className="px-4 py-2 border-b flex flex-wrap gap-1.5" role="group" aria-label="Personal context toggles">
+        <ContextToggleChip
+          active={contextToggles.useProfile}
+          onToggle={() => toggleContext("useProfile")}
+          icon={UserCircle}
+          label="My profile"
+        />
+        <ContextToggleChip
+          active={contextToggles.usePantry}
+          onToggle={() => toggleContext("usePantry")}
+          icon={ShoppingBasket}
+          label="My pantry"
+        />
+        <ContextToggleChip
+          active={contextToggles.useBudget}
+          onToggle={() => toggleContext("useBudget")}
+          icon={Wallet}
+          label="My budget"
+        />
       </div>
 
       {/* Messages area */}
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-4 py-4 space-y-4 scroll-smooth"
+        role="log"
+        aria-label="Chat messages"
+        aria-live="polite"
       >
         {!hasMessages && (
           <div className="flex flex-col items-center justify-center h-full gap-6 text-center">
@@ -160,11 +353,18 @@ export function CoachChat({ initialPrompt, compact = false }: CoachChatProps) {
                 )
               : { citations: [], followUps: [], safetyNotes: [] };
 
+          const assistantText =
+            message.role === "assistant"
+              ? extractTextFromParts(
+                  message.parts as Array<{ type: string; text?: string }>,
+                )
+              : "";
+
           return (
             <div key={message.id} className="space-y-2">
               <div
                 className={cn(
-                  "flex gap-3",
+                  "flex gap-3 group/msg",
                   message.role === "user" ? "justify-end" : "justify-start",
                 )}
               >
@@ -188,6 +388,12 @@ export function CoachChat({ initialPrompt, compact = false }: CoachChatProps) {
                     ) : null,
                   )}
                 </div>
+
+                {message.role === "assistant" && assistantText && (
+                  <div className="flex flex-col justify-start pt-1">
+                    <CopyButton text={assistantText} />
+                  </div>
+                )}
 
                 {message.role === "user" && (
                   <div className="flex-shrink-0 w-7 h-7 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center mt-0.5">
@@ -213,29 +419,7 @@ export function CoachChat({ initialPrompt, compact = false }: CoachChatProps) {
 
               {/* Citations */}
               {message.role === "assistant" && citations.length > 0 && (
-                <div className="ml-10 max-w-[85%]">
-                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
-                    <BookOpen className="w-3 h-3" />
-                    <span>Sources</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {citations.map((citation, i) => (
-                      <a
-                        key={i}
-                        href={citation.source_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors text-muted-foreground"
-                        title={citation.quote || citation.title}
-                      >
-                        <ExternalLink className="w-2.5 h-2.5" />
-                        <span className="max-w-[180px] truncate">
-                          {citation.title}
-                        </span>
-                      </a>
-                    ))}
-                  </div>
-                </div>
+                <CitationsList citations={citations} compact={compact} />
               )}
 
               {/* Follow-up suggestions */}
@@ -278,8 +462,14 @@ export function CoachChat({ initialPrompt, compact = false }: CoachChatProps) {
       {error && (
         <div className="px-4 py-2 flex items-center gap-2 text-sm bg-destructive/10 text-destructive border-t">
           <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-          <span className="flex-1 truncate">Something went wrong. Please try again.</span>
-          <Button variant="ghost" size="xs" onClick={() => regenerate()}>
+          <span className="flex-1 truncate">
+            Something went wrong. Please try again.
+          </span>
+          <Button
+            variant="ghost"
+            size="xs"
+            onClick={() => regenerate({ body: { contextToggles } })}
+          >
             <RotateCcw className="w-3 h-3" />
             Retry
           </Button>
@@ -324,6 +514,7 @@ export function CoachChat({ initialPrompt, compact = false }: CoachChatProps) {
             size="icon"
             disabled={!input.trim() || isLoading}
             className="rounded-xl h-[38px] w-[38px] flex-shrink-0"
+            aria-label="Send message"
           >
             {isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />

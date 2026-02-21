@@ -25,6 +25,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { AskCoachButton } from "@/components/AskCoachButton";
 import type { ShoppingListItem } from "@/app/api/plan/generate/types";
 import type { SnapStore, StoresResponse } from "@/app/api/stores/types";
 import {
@@ -356,6 +357,13 @@ export function NearbyStores({ zipCode }: { zipCode: string }) {
           {showAll ? "Show fewer" : `Show all ${stores.length} stores`}
         </Button>
       )}
+      <div className="pt-1">
+        <AskCoachButton
+          prompt="What can I buy with SNAP at nearby stores? Which stores have Healthy Incentives programs?"
+          label="Ask about SNAP shopping"
+          tooltip="Get tips on SNAP-eligible items at stores"
+        />
+      </div>
     </div>
   );
 }
@@ -407,15 +415,22 @@ export function GroceryList({
             <ShoppingCart className="w-5 h-5 text-primary" />
             <CardTitle className="text-lg font-bold">Grocery List</CardTitle>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 gap-1.5 print:hidden font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50"
-            onClick={handlePrint}
-          >
-            <Printer className="h-4 w-4" />
-            Print
-          </Button>
+          <div className="flex items-center gap-2 print:hidden">
+            <AskCoachButton
+              prompt="Are there cheaper alternatives for items on my grocery list? What SNAP items work best for meal prep?"
+              label="Ask Coach"
+              tooltip="Get budget-friendly shopping tips"
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1.5 font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              onClick={handlePrint}
+            >
+              <Printer className="h-4 w-4" />
+              Print
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-5 sm:p-6 space-y-6">
           <p className="text-sm font-medium text-muted-foreground -mt-2">
