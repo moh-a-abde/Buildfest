@@ -146,29 +146,40 @@ function DashboardStoresSection({ zipCode }: { zipCode: string }) {
   const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
-    if (!zipCode) {
-      setLoading(false);
-      return;
+    let active = true;
+
+    async function load() {
+      if (!zipCode) {
+        if (active) setLoading(false);
+        return;
+      }
+
+      let cancelled = false;
+
+      fetch(`/api/stores?zip=${encodeURIComponent(zipCode)}`)
+        .then((r) => r.json())
+        .then((data: StoresResponse) => {
+          if (cancelled || !active) return;
+          setStores(data.stores ?? []);
+          setSource(data.source);
+        })
+        .catch(() => {
+          if (!cancelled && active) setStores([]);
+        })
+        .finally(() => {
+          if (!cancelled && active) setLoading(false);
+        });
+
+      return () => {
+        cancelled = true;
+      };
     }
 
-    let cancelled = false;
-
-    fetch(`/api/stores?zip=${encodeURIComponent(zipCode)}`)
-      .then((r) => r.json())
-      .then((data: StoresResponse) => {
-        if (cancelled) return;
-        setStores(data.stores ?? []);
-        setSource(data.source);
-      })
-      .catch(() => {
-        if (!cancelled) setStores([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    const cleanup = load();
 
     return () => {
-      cancelled = true;
+      active = false;
+      if (cleanup && typeof cleanup === 'function') cleanup();
     };
   }, [zipCode]);
 

@@ -15,12 +15,10 @@ import {
   DollarSign,
   Leaf,
   Loader2,
-  Package,
   Plus,
   ScanBarcode,
   Sparkles,
   Trash2,
-  Wallet,
   X,
 } from "lucide-react";
 
@@ -398,20 +396,35 @@ export default function PantryPage() {
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-secondary/30">
-      <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-20">
-        <div className="container mx-auto px-4 h-14 flex items-center gap-2">
-          <Leaf className="w-5 h-5 text-primary" />
-          <span className="font-bold tracking-tight">NourishMe</span>
+    <div className="min-h-screen flex flex-col bg-background font-sans text-foreground relative selection:bg-primary/20">
+      {/* Subtle Noise Overlay */}
+      <div className="pointer-events-none fixed inset-0 z-50 opacity-[0.015] mix-blend-multiply bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+
+      <header className="sticky top-4 z-30 mx-auto w-full max-w-2xl px-4 mt-2">
+        <div className="flex h-14 items-center justify-between rounded-full border border-border/40 bg-background/80 px-5 backdrop-blur-xl shadow-sm transition-all duration-700 ease-out">
+          <div className="flex items-center gap-2">
+            <div className="bg-primary/10 p-1.5 rounded-full">
+              <Leaf className="w-4 h-4 text-primary" />
+            </div>
+            <span className="font-semibold tracking-tight text-sm">NourishMe</span>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="rounded-full text-xs text-muted-foreground hover:text-foreground transition-colors duration-700 ease-out" 
+            onClick={() => router.push("/dashboard")}
+          >
+            Back to Dashboard
+          </Button>
         </div>
       </header>
 
-      <main className="flex-1 container mx-auto px-4 py-6 md:py-10 max-w-2xl">
-        <div className="mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+      <main className="flex-1 container mx-auto px-4 py-8 md:py-12 max-w-2xl relative z-10">
+        <div className="mb-10 text-center animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
             Budget & Pantry
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-2 text-base md:text-lg">
             Tell us your budget and what you already have at home.
           </p>
         </div>
@@ -419,44 +432,36 @@ export default function PantryPage() {
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-6"
+            className="space-y-8"
           >
             {/* ── Budget Section ─────────────────────── */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="bg-primary/10 w-10 h-10 rounded-lg flex items-center justify-center text-primary">
-                    <Wallet className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <CardTitle>SNAP Budget</CardTitle>
-                    <CardDescription>
-                      Enter your remaining balance and planning window
-                    </CardDescription>
-                  </div>
+            <Card className="border-border/50 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-6 duration-700 ease-out delay-100 transition-shadow hover:shadow-md py-2 gap-0">
+              <CardHeader className="bg-muted/20 border-b border-border/50 pb-2 pt-2 px-4">
+                <div>
+                  <CardTitle className="text-xl font-semibold tracking-tight">SNAP Budget</CardTitle>
+                  <CardDescription className="text-sm mt-0.5">
+                    Enter your remaining balance and planning window
+                  </CardDescription>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-5">
+              <CardContent className="space-y-4 pt-3 pb-3 px-4 bg-background">
                 <FormField
                   control={form.control}
                   name="snapRemaining"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Remaining SNAP Balance</FormLabel>
+                      <FormLabel className="text-foreground/80 font-medium">Remaining SNAP Balance</FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <div className="relative group">
+                          <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors duration-500" />
                           <Input
                             type="text"
                             inputMode="decimal"
                             placeholder="0.00"
-                            className="pl-9 h-11 text-lg"
+                            className="pl-11 h-14 text-xl font-mono rounded-xl border-border/50 bg-muted/10 focus-visible:ring-primary/20 focus-visible:border-primary transition-all duration-500 shadow-sm"
                             value={field.value || ""}
                             onChange={(e) => {
-                              const raw = e.target.value.replace(
-                                /[^0-9.]/g,
-                                ""
-                              );
+                              const raw = e.target.value.replace(/[^0-9.]/g, "");
                               const parts = raw.split(".");
                               const sanitized =
                                 parts[0] +
@@ -464,16 +469,13 @@ export default function PantryPage() {
                                   ? "." + parts[1].slice(0, 2)
                                   : "");
                               const num = parseFloat(sanitized);
-                              field.onChange(
-                                isNaN(num) ? 0 : num
-                              );
+                              field.onChange(isNaN(num) ? 0 : num);
                             }}
                           />
                         </div>
                       </FormControl>
-                      <FormDescription>
-                        Your current EBT/SNAP card balance or weekly grocery
-                        budget.
+                      <FormDescription className="text-xs">
+                        Your current EBT/SNAP card balance or weekly grocery budget.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -485,9 +487,9 @@ export default function PantryPage() {
                   name="horizonDays"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Planning Window</FormLabel>
+                      <FormLabel className="text-foreground/80 font-medium">Planning Window</FormLabel>
                       <FormControl>
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-3 gap-3">
                           {HORIZON_OPTIONS.map((opt) => {
                             const selected = field.value === opt.value;
                             return (
@@ -495,19 +497,20 @@ export default function PantryPage() {
                                 key={opt.value}
                                 type="button"
                                 onClick={() => field.onChange(opt.value)}
-                                className={`h-11 rounded-lg border text-sm font-medium transition-colors cursor-pointer ${
+                                className={`h-12 rounded-xl border font-medium transition-all duration-700 ease-out cursor-pointer flex flex-col items-center justify-center ${
                                   selected
-                                    ? "border-primary bg-primary text-primary-foreground"
-                                    : "border-border bg-background hover:border-primary/40 hover:bg-muted/50"
+                                    ? "border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/20 scale-[1.02]"
+                                    : "border-border/50 bg-muted/10 text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground hover:scale-[1.02]"
                                 }`}
                               >
-                                {opt.label}
+                                <span className={selected ? "font-bold font-mono" : "font-mono"}>{opt.value}</span>
+                                <span className="text-[10px] uppercase tracking-wider opacity-80">Days</span>
                               </button>
                             );
                           })}
                         </div>
                       </FormControl>
-                      <FormDescription>
+                      <FormDescription className="text-xs">
                         How far ahead should we plan meals?
                       </FormDescription>
                       <FormMessage />
@@ -518,21 +521,16 @@ export default function PantryPage() {
             </Card>
 
             {/* ── Pantry Section ─────────────────────── */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="bg-accent/15 w-10 h-10 rounded-lg flex items-center justify-center text-accent-foreground">
-                    <Package className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <CardTitle>Your Pantry</CardTitle>
-                    <CardDescription>
-                      Add items you already have to reduce grocery costs
-                    </CardDescription>
-                  </div>
+            <Card className="border-border/50 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700 ease-out delay-200 transition-shadow hover:shadow-md py-2 gap-0">
+              <CardHeader className="bg-muted/20 border-b border-border/50 pb-2 pt-2 px-4">
+                <div>
+                  <CardTitle className="text-xl font-semibold tracking-tight">Your Pantry</CardTitle>
+                  <CardDescription className="text-sm mt-0.5">
+                    Add items you already have to reduce grocery costs
+                  </CardDescription>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 pt-3 pb-3 px-4 bg-background">
                 {/* Item list */}
                 <div className="space-y-3">
                   {fields.map((field, index) => (
@@ -545,20 +543,20 @@ export default function PantryPage() {
                   ))}
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Button
                     type="button"
                     variant="outline"
-                    className="flex-1 border-dashed"
+                    className="flex-1 border-dashed border-2 h-12 rounded-xl border-border hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-500 ease-out"
                     onClick={addItem}
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Add Item
+                    Add Another Item
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
-                    className="border-dashed"
+                    className={`sm:w-auto h-12 rounded-xl border-2 transition-all duration-500 ease-out ${barcodeOpen ? 'border-primary bg-primary/5 text-primary' : 'border-border hover:border-primary/50 hover:bg-primary/5'}`}
                     onClick={() => setBarcodeOpen(!barcodeOpen)}
                   >
                     <ScanBarcode className="w-4 h-4 mr-2" />
@@ -567,29 +565,29 @@ export default function PantryPage() {
                 </div>
 
                 {barcodeOpen && (
-                  <div className="rounded-lg border bg-muted/30 p-3 space-y-2 animate-in fade-in-0 slide-in-from-top-1 duration-200">
+                  <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5 space-y-4 animate-in fade-in slide-in-from-top-4 duration-500 ease-out shadow-inner">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium flex items-center gap-1.5">
+                      <p className="text-sm font-medium flex items-center gap-2 text-primary">
                         <ScanBarcode className="w-4 h-4" />
-                        Barcode Lookup
+                        Scan or enter barcode
                       </p>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6"
+                        className="h-8 w-8 rounded-full text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
                         onClick={() => {
                           setBarcodeOpen(false);
                           clearBarcodePanelState();
                         }}
                       >
-                        <X className="w-3.5 h-3.5" />
+                        <X className="w-4 h-4" />
                       </Button>
                     </div>
                     {!previewProduct && (
-                      <div className="flex gap-2">
+                      <div className="flex gap-3">
                         <Input
-                          placeholder="Enter barcode (e.g. 041331092609)"
+                          placeholder="e.g. 041331092609"
                           value={barcodeInput}
                           onChange={(e) => setBarcodeInput(e.target.value)}
                           onKeyDown={(e) => {
@@ -598,12 +596,12 @@ export default function PantryPage() {
                               handleBarcodeLookup();
                             }
                           }}
-                          className="flex-1"
+                          className="flex-1 h-12 font-mono bg-background rounded-xl border-primary/20 focus-visible:ring-primary/30"
                           inputMode="numeric"
                         />
                         <Button
                           type="button"
-                          size="sm"
+                          className="h-12 px-6 rounded-xl shadow-sm transition-all duration-500"
                           disabled={barcodeLoading || !barcodeInput.trim()}
                           onClick={handleBarcodeLookup}
                         >
@@ -616,38 +614,41 @@ export default function PantryPage() {
                       </div>
                     )}
                     {barcodeError && (
-                      <p className="text-xs text-destructive">{barcodeError}</p>
+                      <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm animate-in fade-in">
+                        {barcodeError}
+                      </div>
                     )}
                     {previewProduct && (
-                      <BarcodeProductPreviewCard
-                        product={previewProduct}
-                        onConfirm={confirmBarcodePreview}
-                        onCancel={() => setPreviewProduct(null)}
-                      />
+                      <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                        <BarcodeProductPreviewCard
+                          product={previewProduct}
+                          onConfirm={confirmBarcodePreview}
+                          onCancel={() => setPreviewProduct(null)}
+                        />
+                      </div>
                     )}
-                    <p className="text-[11px] text-muted-foreground">
-                      Enter the UPC barcode number from a product package.
-                      Data from Open Food Facts.
+                    <p className="text-xs text-muted-foreground/80 leading-relaxed">
+                      Find the UPC barcode on the back of your product packaging. This helps us pull exact nutrition info for better meal planning.
                     </p>
                   </div>
                 )}
 
                 {/* Quick-add suggestions */}
                 {suggestions.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-                      <Sparkles className="w-3 h-3" />
-                      Quick add common items
+                  <div className="pt-3 border-t border-border/50">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-2">
+                      <Sparkles className="w-3.5 h-3.5 text-accent-foreground" />
+                      Common staples to quick-add
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {suggestions.slice(0, 12).map((name) => (
+                    <div className="flex flex-wrap gap-2">
+                      {suggestions.slice(0, 15).map((name) => (
                         <button
                           key={name}
                           type="button"
                           onClick={() => addSuggested(name)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full border border-border bg-background hover:bg-muted hover:border-primary/30 transition-colors cursor-pointer"
+                          className="group inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full border border-border/60 bg-muted/20 hover:bg-primary/10 hover:border-primary/40 hover:text-primary hover:scale-[1.05] transition-all duration-500 ease-out cursor-pointer"
                         >
-                          <Plus className="w-3 h-3" />
+                          <Plus className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors" />
                           {name}
                         </button>
                       ))}
@@ -658,24 +659,27 @@ export default function PantryPage() {
             </Card>
 
             {/* Submit */}
-            <Button
-              type="submit"
-              size="lg"
-              className="w-full h-12 text-base"
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  Continue to Plan
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </>
-              )}
-            </Button>
+            <div className="pt-2 pb-8 animate-in fade-in slide-in-from-bottom-10 duration-700 ease-out delay-300">
+              <Button
+                type="submit"
+                size="lg"
+                className="group relative w-full h-14 rounded-2xl text-lg font-medium overflow-hidden shadow-[0_8px_30px_rgb(var(--primary)/0.2)] hover:shadow-[0_8px_40px_rgb(var(--primary)/0.3)] transition-all duration-700 ease-out hover:-translate-y-0.5"
+                disabled={isSaving}
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/20 to-primary/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                    Saving your pantry...
+                  </>
+                ) : (
+                  <>
+                    Continue to Plan
+                    <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-500" />
+                  </>
+                )}
+              </Button>
+            </div>
           </form>
         </Form>
       </main>
@@ -721,7 +725,7 @@ function PantryItemRow({
   }, []);
 
   return (
-    <div className="group rounded-lg border bg-background p-3 transition-shadow hover:shadow-sm animate-in fade-in-0 slide-in-from-top-1 duration-200">
+    <div className="group relative rounded-xl border border-border/50 bg-background p-3 transition-all duration-500 ease-out hover:shadow-md hover:border-primary/20 hover:bg-muted/10">
       <div className="grid grid-cols-[1fr_auto] gap-2">
         {/* Row 1: Name + Remove */}
         <div ref={wrapperRef} className="relative">
@@ -733,8 +737,9 @@ function PantryItemRow({
                 <FormControl>
                   <Input
                     {...field}
-                    placeholder="Item name"
+                    placeholder="What item do you have?"
                     autoComplete="off"
+                    className="h-11 rounded-lg border-border/50 bg-muted/5 text-base font-medium focus-visible:ring-primary/20 focus-visible:border-primary transition-all duration-300"
                     onChange={(e) => {
                       field.onChange(e.target.value);
                       setNameQuery(e.target.value);
@@ -750,12 +755,12 @@ function PantryItemRow({
             )}
           />
           {showSuggestions && filteredSuggestions.length > 0 && (
-            <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md overflow-hidden">
-              {filteredSuggestions.map((suggestion) => (
+            <div className="absolute z-20 top-[calc(100%+4px)] left-0 right-0 bg-popover/95 backdrop-blur-md border border-border/50 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+              {filteredSuggestions.map((suggestion, i) => (
                 <button
                   key={suggestion}
                   type="button"
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors cursor-pointer"
+                  className={`w-full text-left px-4 py-3 text-sm hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer ${i < filteredSuggestions.length - 1 ? 'border-b border-border/40' : ''}`}
                   onMouseDown={(e) => {
                     e.preventDefault();
                     form.setValue(`items.${index}.name`, suggestion);
@@ -775,13 +780,14 @@ function PantryItemRow({
               type="button"
               variant="ghost"
               size="icon"
-              className="text-muted-foreground hover:text-destructive"
+              className="h-11 w-11 rounded-lg text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors duration-300"
               onClick={onRemove}
+              title="Remove item"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-5 h-5" />
             </Button>
           ) : (
-            <div className="w-9" />
+            <div className="w-11" />
           )}
         </div>
       </div>
@@ -794,16 +800,19 @@ function PantryItemRow({
           render={({ field }) => (
             <FormItem>
               <FormControl>
-                <Input
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="Qty"
-                  value={field.value || ""}
-                  onChange={(e) => {
-                    const num = parseFloat(e.target.value);
-                    field.onChange(isNaN(num) ? 0 : num);
-                  }}
-                />
+                <div className="relative">
+                  <Input
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="Qty"
+                    className="h-11 rounded-lg border-border/50 bg-muted/5 font-mono text-center focus-visible:ring-primary/20 focus-visible:border-primary transition-all duration-300"
+                    value={field.value || ""}
+                    onChange={(e) => {
+                      const num = parseFloat(e.target.value);
+                      field.onChange(isNaN(num) ? 0 : num);
+                    }}
+                  />
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -817,13 +826,13 @@ function PantryItemRow({
             <FormItem>
               <Select value={field.value} onValueChange={field.onChange}>
                 <FormControl>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="h-11 rounded-lg border-border/50 bg-muted/5 focus:ring-primary/20 transition-all duration-300">
                     <SelectValue placeholder="Unit" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent>
+                <SelectContent className="rounded-xl border-border/50 shadow-lg">
                   {UNITS.map((unit) => (
-                    <SelectItem key={unit} value={unit}>
+                    <SelectItem key={unit} value={unit} className="rounded-lg cursor-pointer">
                       {unit}
                     </SelectItem>
                   ))}
@@ -840,15 +849,13 @@ function PantryItemRow({
           render={({ field }) => (
             <FormItem>
               <FormControl>
-                <div className="relative">
-                  <Input
-                    type="date"
-                    className="pr-2 text-xs"
-                    value={field.value || ""}
-                    onChange={(e) => field.onChange(e.target.value)}
-                    min={new Date().toISOString().split("T")[0]}
-                  />
-                </div>
+                <Input
+                  type="date"
+                  className="h-11 rounded-lg border-border/50 bg-muted/5 font-mono text-xs focus-visible:ring-primary/20 focus-visible:border-primary transition-all duration-300"
+                  value={field.value || ""}
+                  onChange={(e) => field.onChange(e.target.value)}
+                  min={new Date().toISOString().split("T")[0]}
+                />
               </FormControl>
             </FormItem>
           )}

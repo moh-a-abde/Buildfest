@@ -72,13 +72,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedGuestId = localStorage.getItem(GUEST_KEY);
-    if (storedGuestId) {
-      setGuestId(storedGuestId);
-      setGuestCookies(storedGuestId);
-    }
+    let active = true;
 
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
+    async function initialize() {
+      const storedGuestId = localStorage.getItem(GUEST_KEY);
+      if (storedGuestId && active) {
+        setGuestId(storedGuestId);
+        setGuestCookies(storedGuestId);
+      }
+
+      const { data: { session: s } } = await supabase.auth.getSession();
+      if (!active) return;
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user && storedGuestId) {
@@ -92,11 +96,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         clearGuestCookies();
       }
       setIsLoading(false);
-    });
+    }
+    
+    initialize();
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, s) => {
+      if (!active) return;
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {
@@ -111,7 +118,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, [supabase]);
 
   const signIn = useCallback(
