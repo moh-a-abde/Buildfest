@@ -58,3 +58,31 @@ export type DietaryFlag =
 export type CookingTimeLevel = "quick" | "moderate" | "extended";
 
 export type HorizonDays = 7 | 14 | 30;
+
+// ── Nutrition & Price Reference Data ──
+
+export interface NutritionDataRow {
+  id: string;
+  food_name: string;
+  category: string;
+  calories_per_100g: number;
+  protein_per_100g: number;
+  fiber_per_100g: number;
+  sodium_per_100g: number;
+  serving_size_g: number;
+  usda_ndb_no: string | null;
+  created_at: string;
+}
+
+export interface PriceEstimateRow {
+  id: string;
+  food_name: string;
+  price_per_100g: number;
+  unit: string;
+  source: string;
+  zip_code: string | null;
+  created_at: string;
+}
+
+export type NutritionSeedRow = Omit<NutritionDataRow, "id" | "created_at">;
+export type PriceSeedRow = Omit<PriceEstimateRow, "id" | "created_at">;
