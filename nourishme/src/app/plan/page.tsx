@@ -6,18 +6,13 @@ import Link from "next/link";
 import {
   AlertTriangle,
   ArrowLeft,
-  ChefHat,
   Clock,
   DollarSign,
-  Flame,
   Info,
   Leaf,
   Loader2,
   Package,
-  RefreshCw,
   ShoppingCart,
-  Star,
-  UtensilsCrossed,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,6 +31,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { AuthHeader } from "@/components/AuthHeader";
+import { GroceryList } from "@/components/GroceryList";
 import type {
   GeneratePlanResponse,
   Meal,
@@ -65,12 +61,6 @@ interface PlanData extends GeneratePlanResponse {
 }
 
 // ── Constants ──
-
-const MEAL_TYPE_ICON: Record<string, React.ElementType> = {
-  breakfast: Flame,
-  lunch: UtensilsCrossed,
-  dinner: ChefHat,
-};
 
 const MEAL_TYPE_LABEL: Record<string, string> = {
   breakfast: "Breakfast",
@@ -145,6 +135,13 @@ function getNutritionHighlights(meal: Meal): string[] {
   return highlights.length > 0 ? highlights : ["Balanced meal"];
 }
 
+function substitutionLabel(reason?: string): string | null {
+  if (!reason) return null;
+  if (reason === "allergen-safe") return "Allergen-safe swap";
+  if (reason === "eco-preferred") return "Eco-preferred swap";
+  return null;
+}
+
 // ── Loading Skeleton ──
 
 function LoadingSkeleton() {
@@ -187,14 +184,14 @@ function StatCard({
   infoTooltip,
 }: {
   label: string;
-  value: string;
+  value: React.ReactNode;
   subtitle: string;
-  score: number;
+  score?: number;
   icon: React.ElementType;
   infoTooltip?: string;
 }) {
   return (
-    <Card className={`border ${scoreColor(score)}`}>
+    <Card className={`border ${score !== undefined ? scoreColor(score) : "border-border bg-muted"}`}>
       <CardContent className="py-4 px-4">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-white/60">
@@ -219,9 +216,11 @@ function StatCard({
             <p className="text-lg font-bold leading-tight">{value}</p>
             <p className="text-xs opacity-60 truncate">{subtitle}</p>
           </div>
-          <Badge variant="secondary" className="text-xs">
-            {scoreBadge(score)}
-          </Badge>
+          {score !== undefined && (
+            <Badge variant="secondary" className="text-xs">
+              {scoreBadge(score)}
+            </Badge>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -274,7 +273,7 @@ function PlanScoreCards({
   const targetMaxCalories = NUTRITION_TARGET_PER_PERSON_MAX * householdSize;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 mb-6">
       <StatCard
         label="Budget"
         value={`${formatCurrency(avgCostPerDay)}/day · ${formatCurrency(plan.estimatedTotalCost)}${budgetAmount !== null ? ` of ${formatCurrency(budgetAmount)}` : ""}`}
@@ -293,18 +292,17 @@ function PlanScoreCards({
       />
       <StatCard
         label="Pantry Use"
-        value={`${uniquePantryNames.size} items used · ${expiringSoonUsed} expiring soon`}
+        value={
+          <>
+            {uniquePantryNames.size} items used ·{" "}
+            <span className="text-red-600">
+              {expiringSoonUsed} expiring soon
+            </span>
+          </>
+        }
         subtitle="From your pantry"
-        score={metrics.pantry_utilization_score}
         icon={Package}
         infoTooltip="We plan from your pantry first, a SNAP-Ed recommended way to cut waste and avoid buying duplicates."
-      />
-      <StatCard
-        label="Overall"
-        value={`${scoreBadge(metrics.overall_score)} · ${days} days covered`}
-        subtitle={`${formatCurrency(plan.estimatedTotalCost)} for ${days} days`}
-        score={metrics.overall_score}
-        icon={Star}
       />
     </div>
   );
@@ -321,7 +319,6 @@ function MealRow({
   pantryItems: PantryItemWithExpiry[];
   onClick: () => void;
 }) {
-  const Icon = MEAL_TYPE_ICON[meal.mealType] ?? ChefHat;
   const expiring = getExpiringPantryItemsUsedInMeal(meal, pantryItems);
 
   const expiryTooltip =
@@ -337,12 +334,22 @@ function MealRow({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-2.5">
-          <span className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-background text-muted-foreground transition-colors group-hover:text-foreground">
-            <Icon className="h-3.5 w-3.5" />
-          </span>
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {MEAL_TYPE_LABEL[meal.mealType]}
+              {expiring.length > 0 && expiryTooltip && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                      <Clock className="h-3 w-3 text-amber-600" />
+                      {expiring.length} pantry item{expiring.length > 1 ? "s" : ""} expiring soon
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">{expiryTooltip}</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
             </p>
             <p className="truncate text-base font-semibold leading-snug" title={meal.name}>
               {meal.name}
@@ -355,22 +362,6 @@ function MealRow({
           <p className="text-xs text-muted-foreground tabular-nums">{meal.calories} cal</p>
         </div>
       </div>
-
-      {expiring.length > 0 && expiryTooltip && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-              <Clock className="h-3.5 w-3.5 text-amber-600" />
-              <span>
-                {expiring.length} pantry item{expiring.length > 1 ? "s" : ""} expiring soon
-              </span>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p className="text-xs">{expiryTooltip}</p>
-          </TooltipContent>
-        </Tooltip>
-      )}
       <div className="sr-only">
         {MEAL_TYPE_LABEL[meal.mealType]} {meal.name} {formatCurrency(meal.estimatedCost)}{" "}
         {meal.calories} calories
@@ -410,7 +401,7 @@ function DayColumn({
   return (
     <Card
       key={day.dayIndex ?? idx}
-      className="overflow-hidden border-border/80 bg-muted/20 shadow-sm flex flex-col"
+      className="overflow-hidden border-border/80 bg-muted shadow-sm flex flex-col"
     >
       {hasUrgentInDay && (
         <div className="px-4 py-2 bg-amber-50 border-b border-amber-200 text-xs text-amber-900">
@@ -419,16 +410,16 @@ function DayColumn({
         </div>
       )}
       <CardHeader className="px-4 py-3 border-b bg-transparent">
-        <div className="flex items-center min-w-0">
+        <div className="flex items-center justify-between gap-2 min-w-0">
           <CardTitle className="text-base font-semibold truncate">{dayLabel}</CardTitle>
-        </div>
-        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="rounded-md border bg-background px-2 py-1 tabular-nums">
-            {formatCurrency(day.dayCost)}
-          </span>
-          <span className="rounded-md border bg-background px-2 py-1 tabular-nums">
-            {day.dayCalories.toLocaleString()} cal
-          </span>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="rounded-md border bg-background px-2 py-1 text-xs text-muted-foreground tabular-nums">
+              {formatCurrency(day.dayCost)}
+            </span>
+            <span className="rounded-md border bg-background px-2 py-1 text-xs text-muted-foreground tabular-nums">
+              {day.dayCalories.toLocaleString()} cal
+            </span>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="p-4 space-y-2.5 flex-1 flex flex-col">
@@ -452,10 +443,6 @@ function DayColumn({
                 </span>
               )}
             </span>
-          </p>
-          <p className="flex items-center justify-between gap-2">
-            <span>Leftovers planned</span>
-            <span className="font-medium text-foreground">No</span>
           </p>
         </div>
       </CardContent>
@@ -486,10 +473,6 @@ function MealDetailDrawer({
   const toBuy = meal.ingredients.filter((i) => !i.fromPantry);
   const expiring = getExpiringPantryItemsUsedInMeal(meal, pantryItems);
   const highlights = getNutritionHighlights(meal);
-
-  const handleSwap = () => {
-    // TODO: regenerate-day API returns 501
-  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -548,12 +531,16 @@ function MealDetailDrawer({
                   <p className="text-xs font-medium text-muted-foreground mb-1.5">From pantry</p>
                   <div className="flex flex-wrap gap-1.5">
                     {pantryUsed.map((i, idx) => (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center rounded-md border border-border/70 bg-background px-2 py-1 text-xs text-foreground"
-                      >
-                        {i.name}
-                      </span>
+                      <div key={idx} className="inline-flex items-center gap-1.5">
+                        <span className="inline-flex items-center rounded-md border border-border/70 bg-background px-2 py-1 text-xs text-foreground">
+                          {i.name}
+                        </span>
+                        {substitutionLabel(i.substitutionReason) && (
+                          <Badge variant="secondary" className="text-[10px]">
+                            {substitutionLabel(i.substitutionReason)}
+                          </Badge>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -564,12 +551,16 @@ function MealDetailDrawer({
                   <p className="text-xs font-medium text-muted-foreground mb-1.5">To buy</p>
                   <div className="flex flex-wrap gap-1.5">
                     {toBuy.map((i, idx) => (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center rounded-md border border-border/70 bg-background px-2 py-1 text-xs"
-                      >
-                        {i.name}
-                      </span>
+                      <div key={idx} className="inline-flex items-center gap-1.5">
+                        <span className="inline-flex items-center rounded-md border border-border/70 bg-background px-2 py-1 text-xs">
+                          {i.name}
+                        </span>
+                        {substitutionLabel(i.substitutionReason) && (
+                          <Badge variant="secondary" className="text-[10px]">
+                            {substitutionLabel(i.substitutionReason)}
+                          </Badge>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -616,21 +607,6 @@ function MealDetailDrawer({
             </p>
           </div>
 
-          {/* 5. Actions */}
-          <div className="rounded-lg border border-border/70 bg-muted/20 p-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-              Actions
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={handleSwap}>
-                <RefreshCw className="w-4 h-4 mr-1.5" />
-                Swap meal
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              Meal swap coming soon.
-            </p>
-          </div>
         </div>
       </SheetContent>
     </Sheet>
@@ -650,7 +626,7 @@ function PlanContent() {
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
   const [scoring, setScoring] = useState(false);
   const [budgetAmount, setBudgetAmount] = useState<number | null>(null);
-  const [profile, setProfile] = useState<{ household_size: number } | null>(null);
+  const [profile, setProfile] = useState<{ household_size: number; zip_code: string } | null>(null);
   const [pantryItems, setPantryItems] = useState<PantryItemWithExpiry[]>([]);
 
   useEffect(() => {
@@ -742,12 +718,33 @@ function PlanContent() {
       }
       if (pantryRes?.items) {
         setPantryItems(
-          pantryRes.items.map((i: { name: string; quantity: number; unit: string; expires_on?: string | null }) => ({
-            name: i.name,
-            quantity: i.quantity,
-            unit: i.unit,
-            expires_on: i.expires_on ?? null,
-          }))
+          pantryRes.items.map(
+            (i: {
+              name: string;
+              quantity: number;
+              unit: string;
+              expires_on?: string | null;
+              barcode?: string | null;
+              brand?: string | null;
+              off_metadata_ref?: {
+                product_identity: string | null;
+                normalized_product_name: string | null;
+                allergen_flags: string[];
+                nutri_score: string | null;
+                eco_score: string | null;
+                nova_group: number | null;
+                carbon_footprint_kg_co2e_per_kg: number | null;
+              } | null;
+            }) => ({
+              name: i.name,
+              quantity: i.quantity,
+              unit: i.unit,
+              expires_on: i.expires_on ?? null,
+              barcode: i.barcode ?? null,
+              brand: i.brand ?? null,
+              off_metadata_ref: i.off_metadata_ref ?? null,
+            }),
+          )
         );
       }
     });
@@ -890,6 +887,16 @@ function PlanContent() {
             );
           })}
         </div>
+
+        {/* Grocery List + Nearby SNAP Stores */}
+        {plan.shoppingList && plan.shoppingList.length > 0 && (
+          <GroceryList
+            shoppingList={plan.shoppingList}
+            householdSize={householdSize}
+            zipCode={profile?.zip_code ?? ""}
+            estimatedTotalCost={plan.estimatedTotalCost}
+          />
+        )}
 
         {/* Nutrition Summary - Card A */}
         {plan.nutritionSummary && (

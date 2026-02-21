@@ -7,6 +7,8 @@ export const ProfileInputSchema = z.object({
   zipCode: z.string().min(3),
   dietaryFlags: z.array(z.string()),
   cookingTimeLevel: z.enum(["quick", "moderate", "extended"]),
+  allergenExclusions: z.array(z.string()).optional(),
+  ecoPriorityEnabled: z.boolean().optional(),
   preferredCuisines: z.array(z.string()).optional(),
 });
 
@@ -22,6 +24,20 @@ export const PantryItemInputSchema = z.object({
   unit: z.string().min(1),
   expiresOn: z
     .union([z.string().date(), z.string().datetime()])
+    .nullable()
+    .optional(),
+  barcode: z.string().min(8).max(14).nullable().optional(),
+  brand: z.string().nullable().optional(),
+  offMetadataRef: z
+    .object({
+      product_identity: z.string().nullable(),
+      normalized_product_name: z.string().nullable(),
+      allergen_flags: z.array(z.string()),
+      nutri_score: z.string().nullable(),
+      eco_score: z.string().nullable(),
+      nova_group: z.number().int().nullable(),
+      carbon_footprint_kg_co2e_per_kg: z.number().nullable(),
+    })
     .nullable()
     .optional(),
 });
@@ -46,6 +62,9 @@ export const IngredientSchema = z.object({
   quantity: z.number().min(0),
   unit: z.string(),
   fromPantry: z.boolean(),
+  substitutedFrom: z.string().optional(),
+  substitutionReason: z.enum(["allergen-safe", "eco-preferred"]).optional(),
+  substitutionDetails: z.string().optional(),
 });
 
 export const MealSchema = z.object({
@@ -74,6 +93,9 @@ export const ShoppingListItemSchema = z.object({
   unit: z.string(),
   estimatedCost: z.number().min(0),
   pantryOverlap: z.boolean(),
+  substitutedFrom: z.string().optional(),
+  substitutionReason: z.enum(["allergen-safe", "eco-preferred"]).optional(),
+  substitutionDetails: z.string().optional(),
 });
 
 export const NutritionSummarySchema = z.object({

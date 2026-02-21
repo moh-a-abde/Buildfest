@@ -42,7 +42,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import type { CookingTimeLevel, DietaryFlag } from "@/lib/types";
+import type { AllergenExclusion, CookingTimeLevel, DietaryFlag } from "@/lib/types";
 
 const STORAGE_KEY = "nourishme_onboarding";
 
@@ -52,6 +52,18 @@ const DIETARY_OPTIONS: { value: DietaryFlag; label: string; icon: string }[] = [
   { value: "gluten-free", label: "Gluten-Free", icon: "🌾" },
   { value: "dairy-free", label: "Dairy-Free", icon: "🥛" },
   { value: "nut-free", label: "Nut-Free", icon: "🥜" },
+];
+
+const ALLERGEN_OPTIONS: { value: AllergenExclusion; label: string; icon: string }[] = [
+  { value: "peanuts", label: "Peanuts", icon: "🥜" },
+  { value: "tree-nuts", label: "Tree Nuts", icon: "🌰" },
+  { value: "milk", label: "Milk", icon: "🥛" },
+  { value: "eggs", label: "Eggs", icon: "🥚" },
+  { value: "soy", label: "Soy", icon: "🫘" },
+  { value: "wheat", label: "Wheat", icon: "🌾" },
+  { value: "fish", label: "Fish", icon: "🐟" },
+  { value: "shellfish", label: "Shellfish", icon: "🦐" },
+  { value: "sesame", label: "Sesame", icon: "🧆" },
 ];
 
 const COOKING_TIME_OPTIONS: {
@@ -71,9 +83,11 @@ const onboardingSchema = z.object({
     .max(8, "Maximum 8 people"),
   zipCode: z.string().regex(/^\d{5}$/, "Enter a valid 5-digit ZIP code"),
   dietaryFlags: z.array(z.string()),
+  allergenExclusions: z.array(z.string()),
   cookingTime: z.enum(["quick", "moderate", "extended"], {
     error: "Please select a cooking time preference",
   }),
+  ecoPriorityEnabled: z.boolean().default(false),
 });
 
 type OnboardingValues = z.infer<typeof onboardingSchema>;
@@ -170,7 +184,9 @@ export default function OnboardingPage() {
       householdSize: saved?.householdSize ?? 2,
       zipCode: saved?.zipCode ?? "",
       dietaryFlags: saved?.dietaryFlags ?? [],
+      allergenExclusions: saved?.allergenExclusions ?? [],
       cookingTime: saved?.cookingTime ?? undefined,
+      ecoPriorityEnabled: saved?.ecoPriorityEnabled ?? false,
     },
     mode: "onChange",
   });
@@ -191,7 +207,9 @@ export default function OnboardingPage() {
             householdSize: p.household_size ?? form.getValues("householdSize"),
             zipCode: p.zip_code ?? form.getValues("zipCode"),
             dietaryFlags: p.dietary_flags ?? form.getValues("dietaryFlags"),
+            allergenExclusions: p.allergen_exclusions ?? form.getValues("allergenExclusions"),
             cookingTime,
+            ecoPriorityEnabled: p.eco_priority_enabled ?? form.getValues("ecoPriorityEnabled"),
           }, { keepDirtyValues: true });
         }
       })
@@ -260,7 +278,9 @@ export default function OnboardingPage() {
       household_size: values.householdSize,
       zip_code: values.zipCode,
       dietary_flags: values.dietaryFlags,
+      allergen_exclusions: values.allergenExclusions,
       cooking_time_level: values.cookingTime,
+      eco_priority_enabled: values.ecoPriorityEnabled,
     };
 
     localStorage.setItem("nourishme_profile", JSON.stringify(profileData));
@@ -563,6 +583,48 @@ function DietaryStep() {
               />
             ))}
           </div>
+          <div className="mt-4 border-t pt-4">
+            <p className="text-sm font-medium mb-2">Exclude allergens</p>
+            <div className="grid gap-3">
+              {ALLERGEN_OPTIONS.map((option) => (
+                <FormField
+                  key={option.value}
+                  control={control}
+                  name="allergenExclusions"
+                  render={({ field }) => {
+                    const values = field.value as string[];
+                    const checked = values.includes(option.value);
+                    return (
+                      <FormItem>
+                        <FormControl>
+                          <label
+                            className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                              checked
+                                ? "border-primary bg-primary/5"
+                                : "border-border hover:border-primary/40 hover:bg-muted/50"
+                            }`}
+                          >
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(isChecked) => {
+                                field.onChange(
+                                  isChecked
+                                    ? [...values, option.value]
+                                    : values.filter((v) => v !== option.value)
+                                );
+                              }}
+                            />
+                            <span className="text-xl">{option.icon}</span>
+                            <span className="font-medium">{option.label}</span>
+                          </label>
+                        </FormControl>
+                      </FormItem>
+                    );
+                  }}
+                />
+              ))}
+            </div>
+          </div>
           <FormDescription className="mt-3">
             Select all that apply. You can always change these later.
           </FormDescription>
@@ -576,57 +638,80 @@ function CookingTimeStep() {
   const { control } = useFormContext<OnboardingValues>();
 
   return (
-    <FormField
-      control={control}
-      name="cookingTime"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel className="sr-only">Cooking Time</FormLabel>
-          <FormControl>
-            <div className="grid gap-3">
-              {COOKING_TIME_OPTIONS.map((option) => {
-                const selected = field.value === option.value;
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => field.onChange(option.value)}
-                    className={`flex items-center gap-4 p-4 rounded-lg border text-left transition-colors cursor-pointer ${
-                      selected
-                        ? "border-primary bg-primary/5 ring-1 ring-primary"
-                        : "border-border hover:border-primary/40 hover:bg-muted/50"
-                    }`}
-                  >
-                    <div
-                      className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${
+    <>
+      <FormField
+        control={control}
+        name="cookingTime"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="sr-only">Cooking Time</FormLabel>
+            <FormControl>
+              <div className="grid gap-3">
+                {COOKING_TIME_OPTIONS.map((option) => {
+                  const selected = field.value === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => field.onChange(option.value)}
+                      className={`flex items-center gap-4 p-4 rounded-lg border text-left transition-colors cursor-pointer ${
                         selected
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground"
+                          ? "border-primary bg-primary/5 ring-1 ring-primary"
+                          : "border-border hover:border-primary/40 hover:bg-muted/50"
                       }`}
                     >
-                      {option.value === "quick" ? (
-                        <Clock className="w-5 h-5" />
-                      ) : (
-                        <ChefHat className="w-5 h-5" />
+                      <div
+                        className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${
+                          selected
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {option.value === "quick" ? (
+                          <Clock className="w-5 h-5" />
+                        ) : (
+                          <ChefHat className="w-5 h-5" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium">{option.label}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {option.description}
+                        </p>
+                      </div>
+                      {selected && (
+                        <Check className="w-5 h-5 text-primary ml-auto flex-shrink-0" />
                       )}
-                    </div>
-                    <div>
-                      <p className="font-medium">{option.label}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {option.description}
-                      </p>
-                    </div>
-                    {selected && (
-                      <Check className="w-5 h-5 text-primary ml-auto flex-shrink-0" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
+                    </button>
+                  );
+                })}
+              </div>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={control}
+        name="ecoPriorityEnabled"
+        render={({ field }) => (
+          <FormItem className="mt-4 rounded-lg border p-4">
+            <FormLabel className="font-medium">Prioritize lower-impact ingredients</FormLabel>
+            <FormDescription>
+              We will prefer lower eco-impact alternatives when they fit your budget and nutrition goals.
+            </FormDescription>
+            <FormControl>
+              <label className="mt-3 flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={Boolean(field.value)}
+                  onCheckedChange={(checked) => field.onChange(Boolean(checked))}
+                />
+                Enable eco-priority substitutions
+              </label>
+            </FormControl>
+          </FormItem>
+        )}
+      />
+    </>
   );
 }

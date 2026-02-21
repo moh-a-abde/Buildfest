@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from "./supabase";
-import type { NutritionDataRow, PriceEstimateRow } from "./types";
+import type { NutritionDataRow, PriceEstimateRow, PriceSourceRow } from "./types";
 
 function getClient() {
   return createServerSupabaseClient();
@@ -41,14 +41,67 @@ export async function lookupPrice(
   return data as PriceEstimateRow;
 }
 
+export interface PriceFilter {
+  zipCode?: string;
+  storeChain?: string;
+  storeId?: string;
+  source?: string;
+}
+
 /**
- * Fuzzy price lookup: try exact ilike first, then partial match.
- * For example, "chicken breast" will match "Chicken breast, boneless, skinless, raw".
- * Falls back to checking if the query is contained in a food_name or vice versa.
+ * Look up a price from the multi-source price_sources table.
+ * Filters by source/store/zip when provided. Returns the most recently fetched match.
+ */
+export async function lookupPriceSource(
+  foodName: string,
+  filter?: PriceFilter,
+): Promise<PriceSourceRow | null> {
+  const client = getClient();
+
+  let query = client
+    .from("price_sources")
+    .select("*")
+    .ilike("food_name", foodName);
+
+  if (filter?.source) query = query.eq("source", filter.source);
+  if (filter?.storeId) query = query.eq("store_id", filter.storeId);
+  if (filter?.storeChain) query = query.eq("store_chain", filter.storeChain);
+  if (filter?.zipCode) query = query.eq("zip_code", filter.zipCode);
+
+  const { data, error } = await query
+    .order("fetched_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error || !data) return null;
+  return data as PriceSourceRow;
+}
+
+/**
+ * Fuzzy price lookup with multi-source support.
+ * When a PriceFilter is provided, checks price_sources first, then falls back
+ * to the legacy price_estimates table. Without a filter, behaves identically
+ * to the original implementation.
  */
 export async function lookupPriceFuzzy(
   foodName: string,
+  filter?: PriceFilter,
 ): Promise<PriceEstimateRow | null> {
+  if (filter) {
+    const sourceHit = await lookupPriceSource(foodName, filter);
+    if (sourceHit) {
+      return {
+        id: sourceHit.id,
+        food_name: sourceHit.food_name,
+        price_per_100g: sourceHit.price_per_100g,
+        unit: sourceHit.unit,
+        source: sourceHit.source,
+        zip_code: sourceHit.zip_code,
+        created_at: sourceHit.created_at,
+      };
+    }
+  }
+
   const exact = await lookupPrice(foodName);
   if (exact) return exact;
 
@@ -97,6 +150,35 @@ export async function lookupPriceFuzzy(
   }
 
   return null;
+}
+
+/**
+ * Persist a price from an external source (Kroger, etc.) into price_sources.
+ * Uses upsert semantics keyed on food_name + source + store_id + zip_code.
+ */
+export async function upsertPriceSource(row: {
+  food_name: string;
+  price_per_100g: number;
+  unit?: string;
+  source: string;
+  store_chain?: string;
+  store_id?: string;
+  zip_code?: string;
+}): Promise<void> {
+  const client = getClient();
+  await client.from("price_sources").upsert(
+    {
+      food_name: row.food_name,
+      price_per_100g: row.price_per_100g,
+      unit: row.unit ?? "g",
+      source: row.source,
+      store_chain: row.store_chain ?? null,
+      store_id: row.store_id ?? null,
+      zip_code: row.zip_code ?? null,
+      fetched_at: new Date().toISOString(),
+    },
+    { onConflict: "food_name,source,store_id,zip_code", ignoreDuplicates: false },
+  );
 }
 
 export interface FoodLookupResult {

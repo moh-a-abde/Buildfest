@@ -5,6 +5,8 @@ interface StoredProfile {
   zip_code: string;
   dietary_flags: string[];
   cooking_time_level: CookingTimeLevel;
+  allergen_exclusions?: string[];
+  eco_priority_enabled?: boolean;
 }
 
 interface StoredBudget {
@@ -17,6 +19,17 @@ interface StoredPantryItem {
   quantity: number;
   unit: string;
   expires_on?: string | null;
+  barcode?: string | null;
+  brand?: string | null;
+  off_metadata_ref?: {
+    product_identity: string | null;
+    normalized_product_name: string | null;
+    allergen_flags: string[];
+    nutri_score: string | null;
+    eco_score: string | null;
+    nova_group: number | null;
+    carbon_footprint_kg_co2e_per_kg: number | null;
+  } | null;
 }
 
 /**
@@ -53,6 +66,8 @@ export function buildGeneratePlanPayload(
       zipCode: profile.zip_code,
       dietaryFlags: profile.dietary_flags,
       cookingTimeLevel: profile.cooking_time_level,
+      allergenExclusions: profile.allergen_exclusions ?? [],
+      ecoPriorityEnabled: profile.eco_priority_enabled ?? false,
     },
     budget: {
       snapRemaining: budget.snap_remaining,
@@ -71,6 +86,9 @@ export function buildGeneratePlanPayload(
         quantity: item.quantity,
         unit: item.unit.trim(),
         expiresOn: normalizeExpiresOn(item.expires_on),
+        barcode: item.barcode ?? null,
+        brand: item.brand ?? null,
+        offMetadataRef: item.off_metadata_ref ?? null,
       })),
     targets: {
       caloriesPerDay: Math.max(800, Math.min(4000, adjustedCalories)),

@@ -17,9 +17,11 @@ import {
   Loader2,
   Package,
   Plus,
+  ScanBarcode,
   Sparkles,
   Trash2,
   Wallet,
+  X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -47,6 +49,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { BarcodeProductPreviewCard } from "@/components/BarcodeProductPreviewCard";
+import type { BarcodeProduct } from "@/lib/barcode-lookup";
 import type { HorizonDays } from "@/lib/types";
 
 // ── Constants ──────────────────────────────────────────────────────────
@@ -123,6 +127,20 @@ const pantryItemSchema = z.object({
   quantity: z.number().min(0.1, "Quantity must be positive"),
   unit: z.string().min(1, "Select a unit"),
   expiresOn: z.string().optional(),
+  barcode: z.string().nullable().optional(),
+  brand: z.string().nullable().optional(),
+  offMetadataRef: z
+    .object({
+      product_identity: z.string().nullable(),
+      normalized_product_name: z.string().nullable(),
+      allergen_flags: z.array(z.string()),
+      nutri_score: z.string().nullable(),
+      eco_score: z.string().nullable(),
+      nova_group: z.number().int().nullable(),
+      carbon_footprint_kg_co2e_per_kg: z.number().nullable(),
+    })
+    .nullable()
+    .optional(),
 });
 
 const pageSchema = z.object({
@@ -178,6 +196,11 @@ export default function PantryPage() {
   const savedPantry = loadPantry();
   const [apiLoaded, setApiLoaded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [barcodeOpen, setBarcodeOpen] = useState(false);
+  const [barcodeInput, setBarcodeInput] = useState("");
+  const [barcodeLoading, setBarcodeLoading] = useState(false);
+  const [barcodeError, setBarcodeError] = useState("");
+  const [previewProduct, setPreviewProduct] = useState<BarcodeProduct | null>(null);
 
   const form = useForm<PageValues>({
     resolver: zodResolver(pageSchema),
@@ -186,7 +209,7 @@ export default function PantryPage() {
       horizonDays: savedBudget?.horizonDays ?? 7,
       items: savedPantry?.length
         ? savedPantry
-        : [{ name: "", quantity: 1, unit: "items", expiresOn: "" }],
+        : [{ name: "", quantity: 1, unit: "items", expiresOn: "", barcode: null, brand: null, offMetadataRef: null }],
     },
     mode: "onChange",
   });
@@ -209,11 +232,30 @@ export default function PantryPage() {
       }
       if (pantryRes.items && pantryRes.items.length > 0) {
         updates.items = pantryRes.items.map(
-          (i: { name: string; quantity: number; unit: string; expires_on?: string | null }) => ({
+          (i: {
+            name: string;
+            quantity: number;
+            unit: string;
+            expires_on?: string | null;
+            barcode?: string | null;
+            brand?: string | null;
+            off_metadata_ref?: {
+              product_identity: string | null;
+              normalized_product_name: string | null;
+              allergen_flags: string[];
+              nutri_score: string | null;
+              eco_score: string | null;
+              nova_group: number | null;
+              carbon_footprint_kg_co2e_per_kg: number | null;
+            } | null;
+          }) => ({
             name: i.name,
             quantity: i.quantity,
             unit: i.unit,
             expiresOn: i.expires_on ?? "",
+            barcode: i.barcode ?? null,
+            brand: i.brand ?? null,
+            offMetadataRef: i.off_metadata_ref ?? null,
           }),
         );
       }
@@ -235,14 +277,69 @@ export default function PantryPage() {
   }, [watchedValues]);
 
   function addItem() {
-    append({ name: "", quantity: 1, unit: "items", expiresOn: "" });
+    append({ name: "", quantity: 1, unit: "items", expiresOn: "", barcode: null, brand: null, offMetadataRef: null });
   }
 
   function addSuggested(name: string) {
     const existing = form.getValues("items");
     if (existing.some((item) => item.name.toLowerCase() === name.toLowerCase()))
       return;
-    append({ name, quantity: 1, unit: "items", expiresOn: "" });
+    append({ name, quantity: 1, unit: "items", expiresOn: "", barcode: null, brand: null, offMetadataRef: null });
+  }
+
+  function clearBarcodePanelState() {
+    setBarcodeInput("");
+    setBarcodeError("");
+    setPreviewProduct(null);
+  }
+
+  function confirmBarcodePreview() {
+    if (!previewProduct) return;
+    append({
+      name: previewProduct.name,
+      quantity: 1,
+      unit: "items",
+      expiresOn: "",
+      barcode: previewProduct.barcode ?? null,
+      brand: previewProduct.brand || null,
+      offMetadataRef: {
+        product_identity: previewProduct.barcode ?? null,
+        normalized_product_name: previewProduct.name ?? null,
+        allergen_flags: previewProduct.offMetadata?.allergens ?? [],
+        nutri_score: previewProduct.offMetadata?.nutri_score ?? null,
+        eco_score: previewProduct.offMetadata?.eco_score ?? null,
+        nova_group: previewProduct.offMetadata?.nova_group ?? null,
+        carbon_footprint_kg_co2e_per_kg:
+          previewProduct.offMetadata?.carbon_footprint_kg_co2e_per_kg ?? null,
+      },
+    });
+    clearBarcodePanelState();
+    setBarcodeOpen(false);
+  }
+
+  async function handleBarcodeLookup() {
+    const code = barcodeInput.replace(/\D/g, "");
+    if (code.length < 8 || code.length > 14) {
+      setBarcodeError("Enter an 8-14 digit barcode");
+      return;
+    }
+    setBarcodeLoading(true);
+    setBarcodeError("");
+    try {
+      const res = await fetch(`/api/barcode?code=${code}`);
+      if (!res.ok) {
+        setBarcodeError("Product not found for this barcode");
+        setPreviewProduct(null);
+        return;
+      }
+      const { product } = await res.json();
+      setPreviewProduct(product);
+    } catch {
+      setBarcodeError("Lookup failed. Check your connection.");
+      setPreviewProduct(null);
+    } finally {
+      setBarcodeLoading(false);
+    }
   }
 
   async function onSubmit(values: PageValues) {
@@ -259,6 +356,9 @@ export default function PantryPage() {
         quantity: i.quantity,
         unit: i.unit,
         expires_on: i.expiresOn || null,
+        barcode: i.barcode || null,
+        brand: i.brand || null,
+        off_metadata_ref: i.offMetadataRef ?? null,
       }));
 
     localStorage.setItem(BUDGET_STORAGE_KEY, JSON.stringify(budgetData));
@@ -445,15 +545,92 @@ export default function PantryPage() {
                   ))}
                 </div>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full border-dashed"
-                  onClick={addItem}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Item
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1 border-dashed"
+                    onClick={addItem}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Item
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-dashed"
+                    onClick={() => setBarcodeOpen(!barcodeOpen)}
+                  >
+                    <ScanBarcode className="w-4 h-4 mr-2" />
+                    Scan Barcode
+                  </Button>
+                </div>
+
+                {barcodeOpen && (
+                  <div className="rounded-lg border bg-muted/30 p-3 space-y-2 animate-in fade-in-0 slide-in-from-top-1 duration-200">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium flex items-center gap-1.5">
+                        <ScanBarcode className="w-4 h-4" />
+                        Barcode Lookup
+                      </p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => {
+                          setBarcodeOpen(false);
+                          clearBarcodePanelState();
+                        }}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                    {!previewProduct && (
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Enter barcode (e.g. 041331092609)"
+                          value={barcodeInput}
+                          onChange={(e) => setBarcodeInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleBarcodeLookup();
+                            }
+                          }}
+                          className="flex-1"
+                          inputMode="numeric"
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={barcodeLoading || !barcodeInput.trim()}
+                          onClick={handleBarcodeLookup}
+                        >
+                          {barcodeLoading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            "Look up"
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                    {barcodeError && (
+                      <p className="text-xs text-destructive">{barcodeError}</p>
+                    )}
+                    {previewProduct && (
+                      <BarcodeProductPreviewCard
+                        product={previewProduct}
+                        onConfirm={confirmBarcodePreview}
+                        onCancel={() => setPreviewProduct(null)}
+                      />
+                    )}
+                    <p className="text-[11px] text-muted-foreground">
+                      Enter the UPC barcode number from a product package.
+                      Data from Open Food Facts.
+                    </p>
+                  </div>
+                )}
 
                 {/* Quick-add suggestions */}
                 {suggestions.length > 0 && (

@@ -102,6 +102,13 @@ function buildSystemPrompt(constraints: GeneratePlanToolInput): string {
     profile.dietaryFlags.length > 0
       ? profile.dietaryFlags.join(", ")
       : "No restrictions";
+  const allergenSection =
+    (profile.allergenExclusions?.length ?? 0) > 0
+      ? profile.allergenExclusions?.join(", ")
+      : "None";
+  const ecoPrioritySection = profile.ecoPriorityEnabled
+    ? "Enabled: prefer lower-carbon ingredients when reasonable."
+    : "Disabled";
 
   const days = budget.horizonDays;
   const maxDayIndex = days - 1;
@@ -132,7 +139,9 @@ function buildSystemPrompt(constraints: GeneratePlanToolInput): string {
 - Size: ${profile.householdSize} people
 - ZIP: ${profile.zipCode}
 - Dietary restrictions: ${dietarySection}
+- Allergen exclusions (hard): ${allergenSection}
 - Cooking time preference: ${profile.cookingTimeLevel} (quick=<30min, moderate=30-60min, extended=>60min)
+- Eco priority: ${ecoPrioritySection}
 
 ## Budget
 - SNAP remaining: $${budget.snapRemaining.toFixed(2)}
@@ -153,6 +162,8 @@ ${additionalPreferences ? `\n## Additional Preferences\nThe user requested: ${ad
 2. Each meal must have a unique id (use format "day{dayIndex}-{mealType}", e.g. "day0-breakfast").
 3. Prioritize using pantry items. For EVERY ingredient that matches a Current Pantry item (even partially, e.g. pantry "rice" matches "White rice, long grain, raw"), you MUST set fromPantry=true.
 4. Stay WITHIN the SNAP budget. Be frugal — prefer beans, rice, eggs, frozen vegetables, chicken thighs.
+4a. HARD CONSTRAINT: Never include ingredients that contain user-excluded allergens.
+4b. SOFT CONSTRAINT: If eco priority is enabled, prefer lower-impact alternatives when budget and nutrition remain acceptable.
 5. For each ingredient, use names from this list when possible (for accurate cost lookup):
 ${AVAILABLE_INGREDIENTS.join(", ")}
 6. Use "g" as the unit for ingredients whenever possible. If not grams, use: kg, lb, oz, cups, tbsp, tsp, items.

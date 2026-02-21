@@ -3,8 +3,12 @@ export interface ProfileInput {
   zipCode: string;
   dietaryFlags: string[];
   cookingTimeLevel: "quick" | "moderate" | "extended";
+  allergenExclusions?: string[];
+  ecoPriorityEnabled?: boolean;
   preferredCuisines?: string[];
 }
+
+export type SubstitutionReason = "allergen-safe" | "eco-preferred";
 
 export interface BudgetInput {
   snapRemaining: number;
@@ -17,6 +21,19 @@ export interface PantryItemInput {
   quantity: number;
   unit: string;
   expiresOn?: string | null;
+  barcode?: string | null;
+  brand?: string | null;
+  offMetadataRef?: PantryOffMetadataRefInput | null;
+}
+
+export interface PantryOffMetadataRefInput {
+  product_identity: string | null;
+  normalized_product_name: string | null;
+  allergen_flags: string[];
+  nutri_score: string | null;
+  eco_score: string | null;
+  nova_group: number | null;
+  carbon_footprint_kg_co2e_per_kg: number | null;
 }
 
 export interface TargetsInput {
@@ -36,6 +53,9 @@ export interface Ingredient {
   quantity: number;
   unit: string;
   fromPantry: boolean;
+  substitutedFrom?: string;
+  substitutionReason?: SubstitutionReason;
+  substitutionDetails?: string;
 }
 
 export interface Meal {
@@ -64,6 +84,10 @@ export interface ShoppingListItem {
   unit: string;
   estimatedCost: number;
   pantryOverlap: boolean;
+  priceSource?: string;
+  substitutedFrom?: string;
+  substitutionReason?: SubstitutionReason;
+  substitutionDetails?: string;
 }
 
 export interface NutritionSummary {

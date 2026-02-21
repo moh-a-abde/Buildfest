@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { GeneratePlanRequestSchema } from "./schemas";
 import { generateMealPlan } from "@/app/ai/client";
-import { recalculatePlanCosts } from "@/lib/cost-calculator";
+import { recalculatePlanCosts, type PricingContext } from "@/lib/cost-calculator";
 import { createFallbackPlan } from "@/lib/fallback-plan";
 import { normalizePantryFlags, recomputeNutritionSummary } from "@/lib/plan-normalizer";
+import { applyPreferenceConstraints } from "@/lib/plan-preference-constraints";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { resolveUserId, getServiceClient } from "@/lib/db";
 import type { GeneratePlanToolInput } from "@/app/ai/tools";
@@ -109,11 +110,26 @@ export async function POST(request: Request) {
       usedFallback = true;
     }
 
+    const { changesSummary } = await applyPreferenceConstraints(
+      rawPlan,
+      constraints.profile,
+    );
+
     normalizePantryFlags(rawPlan, constraints.pantryItems);
 
-    const { plan, totalCost } = await recalculatePlanCosts(rawPlan);
+    const pricingCtx: PricingContext = {
+      zipCode: parsed.data.profile.zipCode,
+    };
+    const { plan, totalCost } = await recalculatePlanCosts(rawPlan, pricingCtx);
 
     recomputeNutritionSummary(plan);
+
+    if (changesSummary.length > 0) {
+      const detail = changesSummary.slice(0, 5).join("; ");
+      plan.confidenceNotes.push(
+        `Substitutions applied (${changesSummary.length}) to satisfy allergen and eco preferences.${detail ? ` Examples: ${detail}.` : ""}`,
+      );
+    }
 
     if (usedFallback && !plan.confidenceNotes.some((n) => n.includes("FALLBACK"))) {
       plan.confidenceNotes.push(

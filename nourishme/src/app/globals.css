@@ -158,3 +158,29 @@
   }
 }
 
+.snap-store-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+}
+
+.leaflet-popup-tip {
+  box-shadow: none;
+}
+
+@media print {
+  body > *:not(.grocery-list-print) {
+    /* Keep grocery list visible, hide other chrome */
+  }
+  .print\:hidden {
+    display: none !important;
+  }
+  .grocery-list-print {
+    break-inside: avoid;
+  }
+}
+

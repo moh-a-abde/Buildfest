@@ -33,6 +33,17 @@ export async function POST(request: Request) {
     quantity: number;
     unit: string;
     expires_on?: string | null;
+    barcode?: string | null;
+    brand?: string | null;
+    off_metadata_ref?: {
+      product_identity: string | null;
+      normalized_product_name: string | null;
+      allergen_flags: string[];
+      nutri_score: string | null;
+      eco_score: string | null;
+      nova_group: number | null;
+      carbon_footprint_kg_co2e_per_kg: number | null;
+    } | null;
   }> = body.items;
 
   if (!Array.isArray(items)) {
@@ -67,6 +78,9 @@ export async function POST(request: Request) {
       quantity: i.quantity,
       unit: i.unit,
       expires_on: i.expires_on || null,
+      barcode: i.barcode?.trim() || null,
+      brand: i.brand?.trim() || null,
+      off_metadata_ref: i.off_metadata_ref ?? null,
     }));
 
   const { data, error } = await sb

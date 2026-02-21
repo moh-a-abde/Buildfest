@@ -23,7 +23,7 @@ import { useAuth } from "@/contexts/AuthContext";
 interface HomeStats {
   snapRemaining: number | null;
   pantryItemsToUseFirst: number | null;
-  mealsPlannedThisWeek: number | null;
+  mealsPlannedAllTime: number | null;
 }
 
 export default function Home() {
@@ -33,7 +33,7 @@ export default function Home() {
   const [stats, setStats] = useState<HomeStats>({
     snapRemaining: null,
     pantryItemsToUseFirst: null,
-    mealsPlannedThisWeek: null,
+    mealsPlannedAllTime: null,
   });
 
   useEffect(() => {
@@ -65,14 +65,22 @@ export default function Home() {
           return expDate <= inSevenDays; // expiring today, past, or within 7 days
         }).length;
 
-        let mealsPlannedThisWeek = 0;
+        let mealsPlannedAllTime = 0;
         const plans = plansRes.plans ?? [];
         if (plans.length > 0) {
-          const latestPlanId = plans[0].planId;
-          const planRes = await fetch(`/api/plan/${latestPlanId}`).then((r) => r.json());
-          const mealsByDay = planRes.mealsByDay ?? [];
-          mealsPlannedThisWeek = mealsByDay.reduce(
-            (sum: number, day: { meals?: unknown[] }) => sum + (day.meals?.length ?? 0),
+          const planDetails = await Promise.all(
+            plans.map((p: { planId: string }) =>
+              fetch(`/api/plan/${p.planId}`).then((r) => r.json())
+            )
+          );
+          mealsPlannedAllTime = planDetails.reduce(
+            (sum, pd) =>
+              sum +
+              (pd.mealsByDay ?? []).reduce(
+                (s: number, day: { meals?: unknown[] }) =>
+                  s + (day.meals?.length ?? 0),
+                0
+              ),
             0
           );
         }
@@ -80,7 +88,7 @@ export default function Home() {
         setStats({
           snapRemaining,
           pantryItemsToUseFirst,
-          mealsPlannedThisWeek,
+          mealsPlannedAllTime,
         });
       } catch {
         // Keep nulls on error
@@ -158,8 +166,8 @@ export default function Home() {
                     <p className="font-semibold text-foreground">{formatCount(stats.pantryItemsToUseFirst)}</p>
                   </div>
                   <div className="bg-background/60 rounded-lg border border-border/60 px-4 py-3 text-left">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Meals planned this week</p>
-                    <p className="font-semibold text-foreground">{formatCount(stats.mealsPlannedThisWeek)}</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Meals planned (all time)</p>
+                    <p className="font-semibold text-foreground">{formatCount(stats.mealsPlannedAllTime)}</p>
                   </div>
                 </div>
               </>

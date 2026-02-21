@@ -40,6 +40,10 @@ export async function POST(request: Request) {
         zip_code: body.zip_code,
         dietary_flags: body.dietary_flags,
         cooking_time_level: body.cooking_time_level,
+        allergen_exclusions: Array.isArray(body.allergen_exclusions)
+          ? body.allergen_exclusions
+          : [],
+        eco_priority_enabled: Boolean(body.eco_priority_enabled),
       },
       { onConflict: "user_id" },
     )

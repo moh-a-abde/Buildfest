@@ -4,16 +4,20 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  AlertTriangle,
   ArrowRight,
   Check,
   ChefHat,
   Clock,
   Leaf,
+  List,
   Loader2,
+  Map,
   MapPin,
   Package,
   Pencil,
   Sparkles,
+  Store,
   Trash2,
   Users,
   Wallet,
@@ -36,16 +40,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import dynamic from "next/dynamic";
 import { AuthHeader } from "@/components/AuthHeader";
+import { StoreCard } from "@/components/GroceryList";
 import { useAuth } from "@/contexts/AuthContext";
 import { buildGeneratePlanPayload } from "@/lib/plan-payload";
 import type { CookingTimeLevel } from "@/lib/types";
+import type { SnapStore, StoresResponse } from "@/app/api/stores/types";
+
+const NearbyStoresMap = dynamic(() => import("@/components/NearbyStoresMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full rounded-lg border border-border/70 bg-muted/10 flex items-center justify-center" style={{ height: 360 }}>
+      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+    </div>
+  ),
+});
 
 interface ProfileData {
   household_size: number;
   zip_code: string;
   dietary_flags: string[];
   cooking_time_level: CookingTimeLevel;
+  allergen_exclusions?: string[];
+  eco_priority_enabled?: boolean;
 }
 
 interface BudgetData {
@@ -58,6 +76,17 @@ interface PantryItemData {
   quantity: number;
   unit: string;
   expires_on?: string | null;
+  barcode?: string | null;
+  brand?: string | null;
+  off_metadata_ref?: {
+    product_identity: string | null;
+    normalized_product_name: string | null;
+    allergen_flags: string[];
+    nutri_score: string | null;
+    eco_score: string | null;
+    nova_group: number | null;
+    carbon_footprint_kg_co2e_per_kg: number | null;
+  } | null;
 }
 
 interface RecentPlan {
@@ -101,7 +130,171 @@ function loadPantryCompat(): PantryItemData[] | null {
     quantity: (item.quantity as number) ?? 0,
     unit: (item.unit as string) ?? "items",
     expires_on: (item.expires_on as string) ?? (item.expiresOn as string) ?? null,
+    barcode: (item.barcode as string) ?? null,
+    brand: (item.brand as string) ?? null,
+    off_metadata_ref:
+      (item.off_metadata_ref as PantryItemData["off_metadata_ref"]) ??
+      (item.offMetadataRef as PantryItemData["off_metadata_ref"]) ??
+      null,
   }));
+}
+
+function DashboardStoresSection({ zipCode }: { zipCode: string }) {
+  const [stores, setStores] = useState<SnapStore[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [source, setSource] = useState<"usda_api" | "fallback">("usda_api");
+  const [view, setView] = useState<"list" | "map">("map");
+  const [showAll, setShowAll] = useState(false);
+
+  useEffect(() => {
+    if (!zipCode) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    fetch(`/api/stores?zip=${encodeURIComponent(zipCode)}`)
+      .then((r) => r.json())
+      .then((data: StoresResponse) => {
+        if (cancelled) return;
+        setStores(data.stores ?? []);
+        setSource(data.source);
+      })
+      .catch(() => {
+        if (!cancelled) setStores([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [zipCode]);
+
+  const incentiveCount = stores.filter((s) => s.healthyIncentives).length;
+  const displayed = showAll ? stores : stores.slice(0, 5);
+
+  return (
+    <Card className="mb-8 border-border/80 bg-muted/20">
+      <CardHeader className="pb-3 border-b">
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-primary" />
+              Nearby SNAP-Authorized Stores
+            </CardTitle>
+            <CardDescription className="mt-1">
+              Based on your ZIP code ({zipCode})
+            </CardDescription>
+          </div>
+          {!loading && stores.length > 0 && (
+            <div className="flex items-center rounded-lg border border-border/70 p-0.5">
+              <button
+                type="button"
+                onClick={() => setView("map")}
+                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                  view === "map"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Map className="h-3.5 w-3.5" />
+                Map
+              </button>
+              <button
+                type="button"
+                onClick={() => setView("list")}
+                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                  view === "list"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <List className="h-3.5 w-3.5" />
+                List
+              </button>
+            </div>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="pt-4">
+        {loading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Finding SNAP-authorized stores near {zipCode}...
+          </div>
+        ) : stores.length === 0 ? (
+          <div className="rounded-lg border border-border/70 bg-muted/20 px-4 py-3">
+            <p className="text-sm text-muted-foreground">
+              No SNAP-authorized stores found for ZIP {zipCode}.{" "}
+              <a
+                href="https://www.fns.usda.gov/snap/retailer-locator"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                Search on USDA SNAP Retailer Locator
+              </a>
+            </p>
+          </div>
+        ) : view === "map" ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">
+              <Store className="h-3.5 w-3.5" />
+              <span>
+                {stores.length} SNAP-authorized store{stores.length !== 1 ? "s" : ""} near{" "}
+                {zipCode}
+                {incentiveCount > 0 && (
+                  <> · {incentiveCount} with Healthy Incentives</>
+                )}
+              </span>
+              {source === "fallback" && (
+                <Badge variant="secondary" className="text-[10px]">
+                  Cached
+                </Badge>
+              )}
+            </div>
+            <NearbyStoresMap stores={stores} />
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">
+              <Store className="h-3.5 w-3.5" />
+              <span>
+                {stores.length} SNAP-authorized store{stores.length !== 1 ? "s" : ""} near{" "}
+                {zipCode}
+                {incentiveCount > 0 && (
+                  <> · {incentiveCount} with Healthy Incentives</>
+                )}
+              </span>
+              {source === "fallback" && (
+                <Badge variant="secondary" className="text-[10px]">
+                  Cached
+                </Badge>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              {displayed.map((store, idx) => (
+                <StoreCard key={`${store.name}-${idx}`} store={store} />
+              ))}
+            </div>
+            {stores.length > 5 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-xs"
+                onClick={() => setShowAll(!showAll)}
+              >
+                {showAll ? "Show fewer" : `Show all ${stores.length} stores`}
+              </Button>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function DashboardPage() {
@@ -476,6 +669,11 @@ export default function DashboardPage() {
           </Card>
         )}
 
+        {/* Nearby SNAP-Authorized Stores */}
+        {setupComplete && profile?.zip_code && (
+          <DashboardStoresSection zipCode={profile.zip_code} />
+        )}
+
         {/* Info Cards Grid */}
         <div className="grid md:grid-cols-2 gap-6">
           {/* Profile Card */}
@@ -538,6 +736,34 @@ export default function DashboardPage() {
                             {flag}
                           </Badge>
                         ))}
+                      </dd>
+                    </div>
+                  )}
+                  {(profile.allergen_exclusions?.length ?? 0) > 0 && (
+                    <div className="flex items-start gap-2 pt-1">
+                      <AlertTriangle className="w-3.5 h-3.5 text-muted-foreground mt-0.5" />
+                      <dt className="text-muted-foreground">Allergens</dt>
+                      <dd className="ml-auto flex flex-wrap justify-end gap-1">
+                        {profile.allergen_exclusions?.map((allergen) => (
+                          <Badge
+                            key={allergen}
+                            variant="secondary"
+                            className="text-xs capitalize"
+                          >
+                            {allergen.replace("-", " ")}
+                          </Badge>
+                        ))}
+                      </dd>
+                    </div>
+                  )}
+                  {profile.eco_priority_enabled && (
+                    <div className="flex items-center gap-2">
+                      <Leaf className="w-3.5 h-3.5 text-muted-foreground" />
+                      <dt className="text-muted-foreground">Eco Priority</dt>
+                      <dd className="ml-auto">
+                        <Badge variant="secondary" className="text-xs">
+                          Enabled
+                        </Badge>
                       </dd>
                     </div>
                   )}

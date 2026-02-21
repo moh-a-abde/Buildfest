@@ -99,7 +99,7 @@ async function buildInputFromPlanId(planId: string): Promise<ScoringInput> {
       .single(),
     supabase
       .from("pantry_items")
-      .select("name, quantity, unit, expires_on")
+      .select("name, quantity, unit, expires_on, barcode, brand, off_metadata_ref")
       .eq("user_id", userId),
     supabase
       .from("profiles")
@@ -117,14 +117,31 @@ async function buildInputFromPlanId(planId: string): Promise<ScoringInput> {
     : undefined;
 
   const pantryItems: PantryItemInput[] | undefined = pantryRes.data
-    ? (pantryRes.data as { name: string; quantity: number; unit: string; expires_on: string | null }[]).map(
-        (row) => ({
-          name: row.name,
-          quantity: row.quantity,
-          unit: row.unit,
-          expiresOn: row.expires_on,
-        }),
-      )
+    ? (pantryRes.data as {
+        name: string;
+        quantity: number;
+        unit: string;
+        expires_on: string | null;
+        barcode?: string | null;
+        brand?: string | null;
+        off_metadata_ref?: {
+          product_identity: string | null;
+          normalized_product_name: string | null;
+          allergen_flags: string[];
+          nutri_score: string | null;
+          eco_score: string | null;
+          nova_group: number | null;
+          carbon_footprint_kg_co2e_per_kg: number | null;
+        } | null;
+      }[]).map((row) => ({
+        name: row.name,
+        quantity: row.quantity,
+        unit: row.unit,
+        expiresOn: row.expires_on,
+        barcode: row.barcode ?? null,
+        brand: row.brand ?? null,
+        offMetadataRef: row.off_metadata_ref ?? null,
+      }))
     : undefined;
 
   const householdSize = profileRes.data
