@@ -19,6 +19,8 @@ export interface PlanScoreMetrics {
   costScore: number;
   nutritionScore: number;
   pantryUtilizationScore: number;
+  metadataQualityScore: number;
   overallScore: number;
   improvementSuggestions: string[];
+  reasonCodes: string[];
 }

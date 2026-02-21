@@ -12,6 +12,38 @@ import type { GeneratePlanResponse } from "./types";
 
 const AI_MAX_ATTEMPTS = 2;
 
+function buildMetadataConstraintSummary(changesSummary: string[]): string {
+  if (changesSummary.length === 0) return "";
+
+  const allergenCount = changesSummary.filter((entry) =>
+    entry.includes("(allergen:"),
+  ).length;
+  const softObjectiveCount = changesSummary.filter((entry) =>
+    entry.includes("soft objective"),
+  ).length;
+
+  const swapCount = changesSummary.length;
+  const examples = changesSummary
+    .slice(0, 3)
+    .map((entry) => {
+      const match = entry.match(/^(.+?)\s*->\s*(.+?)\s*\(/);
+      return match ? `${match[1].trim()} → ${match[2].trim()}` : null;
+    })
+    .filter(Boolean)
+    .join("; ");
+
+  if (allergenCount > 0 && softObjectiveCount === 0) {
+    return `${swapCount} ingredient${swapCount !== 1 ? "s were" : " was"} swapped to keep your plan allergen-free.${examples ? ` Examples: ${examples}.` : ""}`;
+  }
+  if (allergenCount > 0 && softObjectiveCount > 0) {
+    return `${swapCount} ingredient${swapCount !== 1 ? "s were" : " was"} swapped (${allergenCount} for allergen safety, ${softObjectiveCount} for better eco/nutrition).${examples ? ` Examples: ${examples}.` : ""}`;
+  }
+  if (softObjectiveCount > 0) {
+    return `${swapCount} ingredient${swapCount !== 1 ? "s were" : " was"} swapped for better eco and nutrition scores.${examples ? ` Examples: ${examples}.` : ""}`;
+  }
+  return `${swapCount} substitution${swapCount !== 1 ? "s" : ""} applied.${examples ? ` Examples: ${examples}.` : ""}`;
+}
+
 /*
   POST /api/plan/generate
 
@@ -125,9 +157,8 @@ export async function POST(request: Request) {
     recomputeNutritionSummary(plan);
 
     if (changesSummary.length > 0) {
-      const detail = changesSummary.slice(0, 5).join("; ");
       plan.confidenceNotes.push(
-        `Substitutions applied (${changesSummary.length}) to satisfy allergen and eco preferences.${detail ? ` Examples: ${detail}.` : ""}`,
+        buildMetadataConstraintSummary(changesSummary),
       );
     }
 

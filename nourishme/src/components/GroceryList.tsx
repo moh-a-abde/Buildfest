@@ -92,13 +92,16 @@ function PriceSourceBadge({ source }: { source?: string }) {
   );
 }
 
-function SubstitutionBadge({ reason }: { reason?: string }) {
-  if (!reason) return null;
-  const label = reason === "allergen-safe" ? "Allergen-safe" : "Eco-preferred";
-  const classes =
-    reason === "allergen-safe"
-      ? "border-red-200 bg-red-50 text-red-700"
-      : "border-emerald-200 bg-emerald-50 text-emerald-700";
+function SubstitutionBadge({ reason, reasonCodes }: { reason?: string; reasonCodes?: string[] }) {
+  const isAllergen =
+    reasonCodes?.includes("allergen_blocked") || reason === "allergen-safe";
+  const isEco = reasonCodes?.includes("eco_preferred") || reason === "eco-preferred";
+  if (!isAllergen && !isEco && !reasonCodes?.length) return null;
+
+  const label = isAllergen ? "Allergen-safe" : "Eco-preferred";
+  const classes = isAllergen
+    ? "border-red-200 bg-red-50 text-red-700"
+    : "border-emerald-200 bg-emerald-50 text-emerald-700";
 
   return (
     <span className={`inline-flex items-center rounded px-1 py-0 text-[9px] font-medium border ${classes}`}>
@@ -152,7 +155,7 @@ function ScaledItem({
         )}
       </span>
       <span className="shrink-0 flex items-center gap-1.5">
-        <SubstitutionBadge reason={item.substitutionReason} />
+        <SubstitutionBadge reason={item.substitutionReason} reasonCodes={item.reasonCodes} />
         <PriceSourceBadge source={item.priceSource} />
         <span className="text-sm font-semibold tabular-nums">
           {formatCurrency(scaledCost)}
@@ -256,13 +259,13 @@ export function StoreCard({ store }: { store: SnapStore }) {
 
 export function NearbyStores({ zipCode }: { zipCode: string }) {
   const [stores, setStores] = useState<SnapStore[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(zipCode));
   const [source, setSource] = useState<"usda_api" | "fallback">("usda_api");
   const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     if (!zipCode) {
-      setLoading(false);
+      setStores([]);
       return;
     }
 

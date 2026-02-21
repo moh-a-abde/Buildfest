@@ -2,6 +2,21 @@ import { z } from "zod/v4";
 
 // ── Request Schemas ──
 
+const ReasonCodeSchema = z.enum([
+  "allergen_blocked",
+  "allergen_safety_fallback",
+  "eco_preferred",
+  "better_eco_score",
+  "better_nutri_score",
+  "lower_nova_group",
+  "lower_carbon_footprint",
+  "weighted_metadata_preference",
+  "metadata_unknown_eco_score",
+  "metadata_unknown_nutri_score",
+  "metadata_unknown_nova_group",
+  "metadata_unknown_carbon_footprint",
+]);
+
 export const ProfileInputSchema = z.object({
   householdSize: z.number().int().min(1),
   zipCode: z.string().min(3),
@@ -65,6 +80,7 @@ export const IngredientSchema = z.object({
   substitutedFrom: z.string().optional(),
   substitutionReason: z.enum(["allergen-safe", "eco-preferred"]).optional(),
   substitutionDetails: z.string().optional(),
+  reasonCodes: z.array(ReasonCodeSchema).optional(),
 });
 
 export const MealSchema = z.object({
@@ -96,6 +112,7 @@ export const ShoppingListItemSchema = z.object({
   substitutedFrom: z.string().optional(),
   substitutionReason: z.enum(["allergen-safe", "eco-preferred"]).optional(),
   substitutionDetails: z.string().optional(),
+  reasonCodes: z.array(ReasonCodeSchema).optional(),
 });
 
 export const NutritionSummarySchema = z.object({

@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   ArrowRight,
   Check,
-  ChefHat,
   Clock,
   Leaf,
   List,
@@ -298,6 +297,7 @@ function DashboardStoresSection({ zipCode }: { zipCode: string }) {
 }
 
 export default function DashboardPage() {
+  const ESTIMATED_GENERATION_SECONDS = 120;
   const { user, isGuest, isLoading } = useAuth();
   const router = useRouter();
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -313,6 +313,7 @@ export default function DashboardPage() {
   const [plansEditMode, setPlansEditMode] = useState(false);
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
   const [plansError, setPlansError] = useState<string | null>(null);
+  const [generationElapsedSeconds, setGenerationElapsedSeconds] = useState(0);
 
   useEffect(() => {
     setProfile(loadJSON<ProfileData>("nourishme_profile"));
@@ -377,6 +378,27 @@ export default function DashboardPage() {
   );
 
   const completedCount = steps.filter((s) => s.done).length;
+  const generationPhase =
+    generationElapsedSeconds < 15
+      ? 0
+      : generationElapsedSeconds < 40
+        ? 1
+        : 2;
+  const generationProgressPercent = Math.min(
+    95,
+    Math.round((generationElapsedSeconds / ESTIMATED_GENERATION_SECONDS) * 100),
+  );
+
+  useEffect(() => {
+    if (!isGenerating) {
+      setGenerationElapsedSeconds(0);
+      return;
+    }
+    const interval = window.setInterval(() => {
+      setGenerationElapsedSeconds((prev) => prev + 1);
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [isGenerating]);
 
   async function handleDeletePlan(planId: string) {
     setDeletingPlanId(planId);
@@ -399,13 +421,14 @@ export default function DashboardPage() {
 
   async function handleGeneratePlan(additionalPreferences?: string) {
     if (!profile || !budget || !pantry) return;
+    let shouldResetGeneratingState = true;
     setIsGenerating(true);
     setGenerateError(null);
     setGenerateStatus("Preparing your request...");
     try {
       const payload = buildGeneratePlanPayload(profile, budget, pantry, additionalPreferences);
       setGenerateStatus(
-        "Generating your meal plan with AI. This can take up to ~45 seconds.",
+        "Generating your meal plan with AI. This usually takes about 2 minutes.",
       );
       const res = await fetch("/api/plan/generate", {
         method: "POST",
@@ -432,6 +455,7 @@ export default function DashboardPage() {
       }
 
       setGenerateStatus("Plan ready. Redirecting...");
+      shouldResetGeneratingState = false;
       const destination = `/plan?planId=${encodeURIComponent(data.planId as string)}`;
       setRecentPlans((prev) => [
         {
@@ -454,8 +478,10 @@ export default function DashboardPage() {
         err instanceof Error ? err.message : "Failed to generate plan",
       );
     } finally {
-      setIsGenerating(false);
-      setGenerateStatus(null);
+      if (shouldResetGeneratingState) {
+        setIsGenerating(false);
+        setGenerateStatus(null);
+      }
     }
   }
 
@@ -535,11 +561,8 @@ export default function DashboardPage() {
         {/* Generate Plan CTA */}
         {setupComplete && (
           <Card className="mb-8 border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5 shadow-sm">
-            <CardContent className="flex flex-col sm:flex-row items-center gap-6 py-8">
-              <div className="bg-primary/10 w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0">
-                <Sparkles className="w-8 h-8 text-primary" />
-              </div>
-              <div className="flex-1 text-center sm:text-left">
+            <CardContent className="flex flex-col gap-4 py-6 sm:flex-row sm:items-end sm:justify-between">
+              <div className="text-center sm:text-left">
                 <h2 className="text-xl font-bold mb-1">
                   Ready to generate your meal plan
                 </h2>
@@ -550,15 +573,10 @@ export default function DashboardPage() {
               </div>
               <Button
                 size="lg"
-                className="h-12 px-6 shadow-sm flex-shrink-0"
+                className="h-11 px-6 self-stretch sm:self-auto sm:min-w-[180px]"
                 disabled={isGenerating}
                 onClick={() => setShowGenerateDialog(true)}
               >
-                {isGenerating ? (
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                ) : (
-                  <ChefHat className="w-5 h-5 mr-2" />
-                )}
                 {isGenerating ? "Generating..." : "Generate Plan"}
               </Button>
             </CardContent>
@@ -568,8 +586,45 @@ export default function DashboardPage() {
               </div>
             )}
             {isGenerating && generateStatus && (
-              <div className="px-6 pb-4 -mt-2">
-                <p className="text-sm text-muted-foreground">{generateStatus}</p>
+              <div className="px-6 pb-5 -mt-1">
+                <div className="rounded-xl border border-primary/20 bg-background/85 p-4 backdrop-blur-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-medium">{generateStatus}</p>
+                    <p className="text-xs text-muted-foreground whitespace-nowrap">
+                      {Math.min(generationElapsedSeconds, ESTIMATED_GENERATION_SECONDS)}s / ~120s
+                    </p>
+                  </div>
+                  <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all duration-1000 ease-linear"
+                      style={{ width: `${generationProgressPercent}%` }}
+                    />
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    {[
+                      "Reading profile",
+                      "Matching pantry",
+                      "Building your plan",
+                    ].map((phase, index) => {
+                      const isComplete = index < generationPhase;
+                      const isActive = index === generationPhase;
+                      return (
+                        <div
+                          key={phase}
+                          className={`rounded-md border px-2 py-2 text-center text-[11px] sm:text-xs transition-colors ${
+                            isComplete
+                              ? "border-primary/30 bg-primary/5 text-foreground"
+                              : isActive
+                                ? "border-primary/40 bg-primary/10 text-foreground animate-pulse"
+                                : "border-border/70 text-muted-foreground"
+                          }`}
+                        >
+                          {phase}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             )}
           </Card>
@@ -976,9 +1031,10 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button
                 variant="outline"
+                className="w-full sm:w-auto"
                 onClick={() => {
                   setShowGenerateDialog(false);
                   setPreferencesInput("");
@@ -987,13 +1043,13 @@ export default function DashboardPage() {
                 Cancel
               </Button>
               <Button
+                className="w-full sm:w-auto sm:min-w-[150px]"
                 onClick={() => {
                   setShowGenerateDialog(false);
                   handleGeneratePlan(preferencesInput.trim() || undefined);
                   setPreferencesInput("");
                 }}
               >
-                <ChefHat className="w-4 h-4 mr-2" />
                 Generate Plan
               </Button>
             </DialogFooter>

@@ -9,6 +9,19 @@ export interface ProfileInput {
 }
 
 export type SubstitutionReason = "allergen-safe" | "eco-preferred";
+export type ReasonCode =
+  | "allergen_blocked"
+  | "allergen_safety_fallback"
+  | "eco_preferred"
+  | "better_eco_score"
+  | "better_nutri_score"
+  | "lower_nova_group"
+  | "lower_carbon_footprint"
+  | "weighted_metadata_preference"
+  | "metadata_unknown_eco_score"
+  | "metadata_unknown_nutri_score"
+  | "metadata_unknown_nova_group"
+  | "metadata_unknown_carbon_footprint";
 
 export interface BudgetInput {
   snapRemaining: number;
@@ -56,6 +69,7 @@ export interface Ingredient {
   substitutedFrom?: string;
   substitutionReason?: SubstitutionReason;
   substitutionDetails?: string;
+  reasonCodes?: ReasonCode[];
 }
 
 export interface Meal {
@@ -88,6 +102,7 @@ export interface ShoppingListItem {
   substitutedFrom?: string;
   substitutionReason?: SubstitutionReason;
   substitutionDetails?: string;
+  reasonCodes?: ReasonCode[];
 }
 
 export interface NutritionSummary {

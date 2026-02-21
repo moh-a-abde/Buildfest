@@ -163,7 +163,7 @@ ${additionalPreferences ? `\n## Additional Preferences\nThe user requested: ${ad
 3. Prioritize using pantry items. For EVERY ingredient that matches a Current Pantry item (even partially, e.g. pantry "rice" matches "White rice, long grain, raw"), you MUST set fromPantry=true.
 4. Stay WITHIN the SNAP budget. Be frugal — prefer beans, rice, eggs, frozen vegetables, chicken thighs.
 4a. HARD CONSTRAINT: Never include ingredients that contain user-excluded allergens.
-4b. SOFT CONSTRAINT: If eco priority is enabled, prefer lower-impact alternatives when budget and nutrition remain acceptable.
+4b. SOFT CONSTRAINT: If eco priority is enabled, use metadata-aware ranking as a secondary objective: prefer better Eco-Score, better Nutri-Score, lower NOVA group, and lower carbon footprint when budget and nutrition remain acceptable.
 5. For each ingredient, use names from this list when possible (for accurate cost lookup):
 ${AVAILABLE_INGREDIENTS.join(", ")}
 6. Use "g" as the unit for ingredients whenever possible. If not grams, use: kg, lb, oz, cups, tbsp, tsp, items.

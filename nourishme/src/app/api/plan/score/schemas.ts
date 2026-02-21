@@ -9,8 +9,10 @@ export const PlanMetricsSchema = z.object({
   costScore: z.number().min(0).max(100),
   nutritionScore: z.number().min(0).max(100),
   pantryUtilizationScore: z.number().min(0).max(100),
+  metadataQualityScore: z.number().min(0).max(100),
   overallScore: z.number().min(0).max(100),
   improvementSuggestions: z.array(z.string()),
+  reasonCodes: z.array(z.string()),
 });
 
 export const PlanScoreRequestSchema = z.union([

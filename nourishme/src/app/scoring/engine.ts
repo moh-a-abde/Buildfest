@@ -1,4 +1,8 @@
-import type { DayPlan, PantryItemInput } from "../api/plan/generate/types";
+import type {
+  DayPlan,
+  PantryItemInput,
+  ReasonCode,
+} from "../api/plan/generate/types";
 
 // ── Public Types ──
 
@@ -14,15 +18,18 @@ export interface ScoringResult {
   costScore: number;
   nutritionScore: number;
   pantryUtilizationScore: number;
+  metadataQualityScore: number;
   overallScore: number;
   improvementSuggestions: string[];
+  reasonCodes: ReasonCode[];
 }
 
 // ── Constants ──
 
-const WEIGHT_NUTRITION = 0.45;
-const WEIGHT_COST = 0.35;
+const WEIGHT_NUTRITION = 0.35;
+const WEIGHT_COST = 0.30;
 const WEIGHT_PANTRY = 0.20;
+const WEIGHT_METADATA = 0.15;
 
 const CALORIE_PER_PERSON_MIN = 1800;
 const CALORIE_PER_PERSON_MAX = 2400;
@@ -54,6 +61,22 @@ function stdDev(values: number[]): number {
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+function normalizeName(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .replace(/\s+/g, " ");
+}
+
+function addReasonCode(codes: Set<ReasonCode>, code: ReasonCode): void {
+  codes.add(code);
+}
+
+function stableReasonCodes(codes: Set<ReasonCode>): ReasonCode[] {
+  return Array.from(codes).sort((a, b) => a.localeCompare(b));
 }
 
 // ── Cost Score ──
@@ -281,12 +304,152 @@ export function calculatePantryUtilizationScore(input: ScoringInput): number {
   return round2(clamp(0.5 * percentUsed + 0.25 * expiryBonus + 0.25 * wasteReduction));
 }
 
+// ── Metadata Quality Score ──
+
+interface OffMetadataLike {
+  nutri_score: string | null;
+  eco_score: string | null;
+  nova_group: number | null;
+  carbon_footprint_kg_co2e_per_kg: number | null;
+}
+
+const GRADE_TO_SCORE: Record<string, number> = {
+  a: 100,
+  b: 80,
+  c: 60,
+  d: 35,
+  e: 10,
+};
+
+function toGradeScore(value: string | null): number {
+  if (!value) return NEUTRAL_SCORE;
+  return GRADE_TO_SCORE[normalizeName(value)] ?? NEUTRAL_SCORE;
+}
+
+function toNovaScore(value: number | null): number {
+  if (value == null) return NEUTRAL_SCORE;
+  const clamped = Math.max(1, Math.min(4, value));
+  return ((4 - clamped) / 3) * 100;
+}
+
+function toCarbonScore(value: number | null): number {
+  if (value == null) return NEUTRAL_SCORE;
+  const clamped = Math.max(0, Math.min(20, value));
+  return ((20 - clamped) / 20) * 100;
+}
+
+function collectIngredientNames(mealsByDay: DayPlan[]): Set<string> {
+  const names = new Set<string>();
+  for (const day of mealsByDay) {
+    for (const meal of day.meals) {
+      for (const ingredient of meal.ingredients) {
+        names.add(normalizeName(ingredient.name));
+      }
+    }
+  }
+  return names;
+}
+
+function matchesIngredientName(ingredientName: string, pantryName: string): boolean {
+  if (!ingredientName || !pantryName) return false;
+  return ingredientName.includes(pantryName) || pantryName.includes(ingredientName);
+}
+
+function metadataForIngredient(
+  ingredientName: string,
+  pantryItems: PantryItemInput[] | undefined,
+): OffMetadataLike | undefined {
+  if (!pantryItems || pantryItems.length === 0) return undefined;
+  for (const item of pantryItems) {
+    const pantryName = normalizeName(item.name);
+    if (matchesIngredientName(ingredientName, pantryName) && item.offMetadataRef) {
+      return item.offMetadataRef;
+    }
+  }
+  return undefined;
+}
+
+function collectSubstitutionReasonCodes(mealsByDay: DayPlan[], reasonCodes: Set<ReasonCode>): void {
+  for (const day of mealsByDay) {
+    for (const meal of day.meals) {
+      for (const ingredient of meal.ingredients) {
+        if (ingredient.substitutionReason === "allergen-safe") {
+          addReasonCode(reasonCodes, "allergen_blocked");
+        }
+        if (ingredient.substitutionReason === "eco-preferred") {
+          addReasonCode(reasonCodes, "eco_preferred");
+        }
+        for (const reasonCode of ingredient.reasonCodes ?? []) {
+          addReasonCode(reasonCodes, reasonCode);
+        }
+      }
+    }
+  }
+}
+
+export function calculateMetadataQualityScore(
+  input: ScoringInput,
+  reasonCodes: Set<ReasonCode>,
+): number {
+  const ingredientNames = collectIngredientNames(input.mealsByDay);
+  if (ingredientNames.size === 0) {
+    addReasonCode(reasonCodes, "metadata_unknown_eco_score");
+    addReasonCode(reasonCodes, "metadata_unknown_nutri_score");
+    addReasonCode(reasonCodes, "metadata_unknown_nova_group");
+    addReasonCode(reasonCodes, "metadata_unknown_carbon_footprint");
+    return NEUTRAL_SCORE;
+  }
+
+  const ecoScores: number[] = [];
+  const nutriScores: number[] = [];
+  const novaScores: number[] = [];
+  const carbonScores: number[] = [];
+
+  let unknownEco = false;
+  let unknownNutri = false;
+  let unknownNova = false;
+  let unknownCarbon = false;
+
+  for (const ingredientName of ingredientNames) {
+    const metadata = metadataForIngredient(ingredientName, input.pantryItems);
+
+    if (!metadata || metadata.eco_score == null) unknownEco = true;
+    if (!metadata || metadata.nutri_score == null) unknownNutri = true;
+    if (!metadata || metadata.nova_group == null) unknownNova = true;
+    if (!metadata || metadata.carbon_footprint_kg_co2e_per_kg == null) unknownCarbon = true;
+
+    ecoScores.push(toGradeScore(metadata?.eco_score ?? null));
+    nutriScores.push(toGradeScore(metadata?.nutri_score ?? null));
+    novaScores.push(toNovaScore(metadata?.nova_group ?? null));
+    carbonScores.push(toCarbonScore(metadata?.carbon_footprint_kg_co2e_per_kg ?? null));
+  }
+
+  if (unknownEco) addReasonCode(reasonCodes, "metadata_unknown_eco_score");
+  if (unknownNutri) addReasonCode(reasonCodes, "metadata_unknown_nutri_score");
+  if (unknownNova) addReasonCode(reasonCodes, "metadata_unknown_nova_group");
+  if (unknownCarbon) addReasonCode(reasonCodes, "metadata_unknown_carbon_footprint");
+
+  const ecoAvg = mean(ecoScores);
+  const nutriAvg = mean(nutriScores);
+  const novaAvg = mean(novaScores);
+  const carbonAvg = mean(carbonScores);
+
+  if (ecoAvg >= 70) addReasonCode(reasonCodes, "better_eco_score");
+  if (nutriAvg >= 70) addReasonCode(reasonCodes, "better_nutri_score");
+  if (novaAvg >= 70) addReasonCode(reasonCodes, "lower_nova_group");
+  if (carbonAvg >= 70) addReasonCode(reasonCodes, "lower_carbon_footprint");
+
+  const score = 0.3 * ecoAvg + 0.25 * nutriAvg + 0.2 * novaAvg + 0.25 * carbonAvg;
+  return round2(clamp(score));
+}
+
 // ── Improvement Suggestions ──
 
 function generateSuggestions(
   costScore: number,
   nutritionScore: number,
   pantryScore: number,
+  metadataScore: number,
   input: ScoringInput,
 ): string[] {
   const suggestions: string[] = [];
@@ -341,6 +504,12 @@ function generateSuggestions(
     }
   }
 
+  if (metadataScore < SUGGESTION_THRESHOLD) {
+    suggestions.push(
+      "Metadata coverage is limited for some ingredients. Add barcoded pantry items to improve eco and nutrition explainability.",
+    );
+  }
+
   return suggestions;
 }
 
@@ -350,12 +519,16 @@ export function scorePlan(input: ScoringInput): ScoringResult {
   const costScore = calculateCostScore(input);
   const nutritionScore = calculateNutritionScore(input);
   const pantryUtilizationScore = calculatePantryUtilizationScore(input);
+  const reasonCodes = new Set<ReasonCode>();
+  collectSubstitutionReasonCodes(input.mealsByDay, reasonCodes);
+  const metadataQualityScore = calculateMetadataQualityScore(input, reasonCodes);
 
   const overallScore = round2(
     clamp(
       WEIGHT_NUTRITION * nutritionScore +
         WEIGHT_COST * costScore +
-        WEIGHT_PANTRY * pantryUtilizationScore,
+        WEIGHT_PANTRY * pantryUtilizationScore +
+        WEIGHT_METADATA * metadataQualityScore,
     ),
   );
 
@@ -363,6 +536,7 @@ export function scorePlan(input: ScoringInput): ScoringResult {
     costScore,
     nutritionScore,
     pantryUtilizationScore,
+    metadataQualityScore,
     input,
   );
 
@@ -370,7 +544,9 @@ export function scorePlan(input: ScoringInput): ScoringResult {
     costScore,
     nutritionScore,
     pantryUtilizationScore,
+    metadataQualityScore,
     overallScore,
     improvementSuggestions,
+    reasonCodes: stableReasonCodes(reasonCodes),
   };
 }

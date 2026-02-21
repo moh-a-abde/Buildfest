@@ -135,7 +135,13 @@ function getNutritionHighlights(meal: Meal): string[] {
   return highlights.length > 0 ? highlights : ["Balanced meal"];
 }
 
-function substitutionLabel(reason?: string): string | null {
+function substitutionLabel(reason?: string, reasonCodes?: string[]): string | null {
+  if (reasonCodes?.includes("allergen_blocked")) return "Allergen-safe swap";
+  if (reasonCodes?.includes("eco_preferred")) return "Eco-preferred swap";
+  if (reasonCodes?.includes("better_nutri_score")) return "Nutrition-improved swap";
+  if (reasonCodes?.includes("lower_nova_group")) return "Lower processing swap";
+  if (reasonCodes?.includes("lower_carbon_footprint")) return "Lower carbon swap";
+  if (reasonCodes?.includes("better_eco_score")) return "Eco-score improved swap";
   if (!reason) return null;
   if (reason === "allergen-safe") return "Allergen-safe swap";
   if (reason === "eco-preferred") return "Eco-preferred swap";
@@ -535,9 +541,9 @@ function MealDetailDrawer({
                         <span className="inline-flex items-center rounded-md border border-border/70 bg-background px-2 py-1 text-xs text-foreground">
                           {i.name}
                         </span>
-                        {substitutionLabel(i.substitutionReason) && (
+                        {substitutionLabel(i.substitutionReason, i.reasonCodes) && (
                           <Badge variant="secondary" className="text-[10px]">
-                            {substitutionLabel(i.substitutionReason)}
+                            {substitutionLabel(i.substitutionReason, i.reasonCodes)}
                           </Badge>
                         )}
                       </div>
@@ -555,9 +561,9 @@ function MealDetailDrawer({
                         <span className="inline-flex items-center rounded-md border border-border/70 bg-background px-2 py-1 text-xs">
                           {i.name}
                         </span>
-                        {substitutionLabel(i.substitutionReason) && (
+                        {substitutionLabel(i.substitutionReason, i.reasonCodes) && (
                           <Badge variant="secondary" className="text-[10px]">
-                            {substitutionLabel(i.substitutionReason)}
+                            {substitutionLabel(i.substitutionReason, i.reasonCodes)}
                           </Badge>
                         )}
                       </div>

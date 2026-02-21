@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 export function AuthHeader() {
   const { user, isGuest, isLoading, signOut } = useAuth();
   const router = useRouter();
+  const username = user?.email?.split("@")[0] ?? user?.email ?? "Account";
 
   async function handleSignOut() {
     await signOut();
@@ -33,7 +34,7 @@ export function AuthHeader() {
           ) : user ? (
             <>
               <span className="text-sm text-muted-foreground hidden sm:inline truncate max-w-[150px]">
-                {user.email}
+                {username}
               </span>
               <Button
                 variant="ghost"

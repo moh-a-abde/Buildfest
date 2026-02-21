@@ -4,18 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Wallet,
-  ClipboardList,
   Leaf,
   ArrowRight,
   LayoutDashboard,
-  Recycle,
-  Refrigerator,
-  CreditCard,
-  ShoppingCart,
 } from "lucide-react";
 import { AuthHeader } from "@/components/AuthHeader";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,10 +19,44 @@ interface HomeStats {
   mealsPlannedAllTime: number | null;
 }
 
+interface HowItWorksPanel {
+  title: string;
+  description: string;
+  height: string;
+}
+
+const HOW_IT_WORKS_PANELS: HowItWorksPanel[] = [
+  {
+    title: "1. Set your budget & household",
+    description:
+      "Tell us your remaining SNAP balance or weekly food budget, how many people you are feeding, and how many days you need to cover.",
+    height: "85%",
+  },
+  {
+    title: "2. Add what you already have",
+    description:
+      "Quickly list pantry staples and fridge items, then optionally add use-by dates so meals can prioritize what should be used first.",
+    height: "100%",
+  },
+  {
+    title: "3. Get your waste-smart meal plan",
+    description:
+      "Receive an AI meal plan with easy recipes, leftovers built into the week, and a list split between pantry items and SNAP purchases.",
+    height: "90%",
+  },
+  {
+    title: "4. Shop with confidence",
+    description:
+      "Bring your list to the store with estimated prices so you can stay confident that your SNAP benefits will cover what you need.",
+    height: "80%",
+  },
+];
+
 export default function Home() {
   const router = useRouter();
   const { user, isLoading, continueAsGuest } = useAuth();
   const isAuthenticated = !isLoading && !!user;
+  const [hoveredPanel, setHoveredPanel] = useState<number | null>(null);
   const [stats, setStats] = useState<HomeStats>({
     snapRemaining: null,
     pantryItemsToUseFirst: null,
@@ -125,9 +152,6 @@ export default function Home() {
       <main className="flex-1">
         {/* Hero Section */}
         <section className="relative overflow-hidden bg-secondary/30 pt-16 md:pt-24 pb-20 md:pb-32">
-          <div className="absolute top-0 right-0 -translate-y-12 translate-x-1/3 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 translate-y-1/3 -translate-x-1/3 w-[500px] h-[500px] bg-accent/5 rounded-full blur-3xl" />
-
           <div className="container mx-auto px-4 relative z-10 text-center max-w-4xl">
             <Badge
               variant="secondary"
@@ -173,232 +197,251 @@ export default function Home() {
               </>
             ) : (
               <>
-                <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6 text-foreground leading-tight">
-                  Use what you have. <br className="hidden md:block" />
-                  <span className="text-primary">Waste less. Stretch your SNAP dollars.</span>
-                </h2>
+                <div className="relative isolate overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-b from-white/45 via-white/20 to-white/10 px-5 py-8 shadow-[0_10px_40px_-22px_hsl(var(--primary)/0.55),inset_0_1px_0_rgba(255,255,255,0.45)] backdrop-blur-[16px] dark:from-white/15 dark:via-white/8 dark:to-white/5 md:rounded-3xl md:px-8 md:py-10">
+                  <div className="relative z-10">
+                    <h2 className="mb-5 text-4xl font-extrabold leading-tight tracking-tight text-foreground md:text-6xl">
+                      Use what you have. <br className="hidden md:block" />
+                      <span className="text-primary">Waste less. Stretch your SNAP dollars.</span>
+                    </h2>
 
-                <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
-                  Plan healthy, affordable meals around what&apos;s already in your
-                  pantry. We help you use up what you have, cut food waste, and
-                  create smart grocery lists that fit your SNAP budget.
-                </p>
+                    <p className="mx-auto mb-8 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl">
+                      Plan healthy, affordable meals around what&apos;s already in your
+                      pantry. We help you use up what you have, cut food waste, and
+                      create smart grocery lists that fit your SNAP budget.
+                    </p>
 
-                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                  <Button
-                    size="lg"
-                    className="w-full sm:w-auto text-base h-14 px-8 shadow-md"
-                    asChild
-                  >
-                    <Link href="/auth/sign-up">
-                      Start Planning
-                      <ArrowRight className="ml-2 w-4 h-4" />
-                    </Link>
-                  </Button>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="w-full sm:w-auto text-base h-14 px-8 bg-background"
-                    onClick={handleGuestStart}
-                  >
-                    Try as Guest
-                  </Button>
+                    <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+                      <Button
+                        size="lg"
+                        className="h-12 w-full px-7 text-base shadow-[0_10px_24px_-14px_hsl(var(--primary)/0.65)] sm:w-auto"
+                        asChild
+                      >
+                        <Link href="/auth/sign-up">
+                          Start Planning
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Link>
+                      </Button>
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        className="h-12 w-full border-white/40 bg-white/45 px-7 text-base backdrop-blur-[16px] sm:w-auto"
+                        onClick={handleGuestStart}
+                      >
+                        Try as Guest
+                      </Button>
+                    </div>
+
+                    <p className="mt-4 text-sm text-muted-foreground">
+                      Takes 2 minutes · Works with SNAP EBT · No credit card
+                    </p>
+
+                    <div className="mx-auto mt-10 grid max-w-3xl gap-4 sm:grid-cols-3">
+                      <div className="rounded-2xl border border-white/30 bg-gradient-to-b from-white/45 via-white/20 to-white/10 px-4 py-3 text-left shadow-[0_8px_24px_-18px_rgba(0,0,0,0.35)] backdrop-blur-[16px] dark:from-white/15 dark:via-white/8 dark:to-white/5">
+                        <p className="text-sm font-semibold text-foreground">Plan around your pantry</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          We start with what you already have at home before adding
+                          anything new.
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-white/30 bg-gradient-to-b from-white/45 via-white/20 to-white/10 px-4 py-3 text-left shadow-[0_8px_24px_-18px_rgba(0,0,0,0.35)] backdrop-blur-[16px] dark:from-white/15 dark:via-white/8 dark:to-white/5">
+                        <p className="text-sm font-semibold text-foreground">Waste less food</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Meals are prioritized to use ingredients that are close to
+                          expiring.
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-white/30 bg-gradient-to-b from-white/45 via-white/20 to-white/10 px-4 py-3 text-left shadow-[0_8px_24px_-18px_rgba(0,0,0,0.35)] backdrop-blur-[16px] dark:from-white/15 dark:via-white/8 dark:to-white/5">
+                        <p className="text-sm font-semibold text-foreground">SNAP-smart budget</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Never plan more than your remaining SNAP or weekly food budget.
+                        </p>
+                      </div>
+                    </div>
+
+                    <p className="mx-auto mt-8 max-w-xl text-xs text-muted-foreground">
+                      Powered by AI, guided by your budget and pantry. You stay in control of every meal.
+                    </p>
+                  </div>
                 </div>
-
-                <p className="mt-4 text-sm text-muted-foreground">
-                  Takes 2 minutes · Works with SNAP EBT · No credit card
-                </p>
-
-                <div className="mt-12 grid sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
-                  <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/60 px-4 py-3 text-left">
-                    <ClipboardList className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-foreground text-sm">Plan around your pantry</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">We start with what you already have at home before adding anything new.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/60 px-4 py-3 text-left">
-                    <Recycle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-foreground text-sm">Waste less food</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">Meals are prioritized to use ingredients that are close to expiring.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/60 px-4 py-3 text-left">
-                    <CreditCard className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-foreground text-sm">SNAP-smart budget</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">Never plan more than your remaining SNAP or weekly food budget.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <p className="mt-10 text-xs text-muted-foreground max-w-xl mx-auto">
-                  Powered by AI, guided by your budget and pantry. You stay in control of every meal.
-                </p>
               </>
             )}
           </div>
         </section>
 
         {!isAuthenticated && (
-        <section className="container mx-auto px-4 py-20 max-w-6xl">
-          <div className="text-center mb-16">
-            <h3 className="text-3xl font-bold text-foreground mb-4">
-              How NourishMe Works
-            </h3>
-            <p className="text-muted-foreground max-w-xl mx-auto text-lg">
-              Three simple steps to take the stress out of feeding your family on
-              a budget.
-            </p>
-          </div>
+          <section className="container mx-auto px-4 py-20 max-w-6xl">
+            <div className="text-center mb-12">
+              <h3 className="text-3xl font-bold text-foreground mb-4">How NourishMe Works</h3>
+              <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+                A simple four-step flow with an interactive view of how each stage
+                works together.
+              </p>
+            </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            <Card className="border-border shadow-sm hover:shadow-md transition-shadow duration-200">
-              <CardHeader className="pb-4">
-                <div className="bg-primary/10 w-12 h-12 rounded-xl flex items-center justify-center mb-4">
-                  <Wallet className="w-6 h-6 text-primary" />
-                </div>
-                <CardTitle className="text-xl">1. Set your budget & household</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground leading-relaxed">
-                  Tell us your remaining SNAP balance or weekly food budget, how many people you&apos;re feeding, and how many days you need to cover. We make sure your plan never goes over what you can actually spend.
-                </p>
-                <p className="text-xs text-muted-foreground mt-4">
-                  • Works with monthly SNAP cycles · • Shows your daily SNAP spend target
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border shadow-sm hover:shadow-md transition-shadow duration-200 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 rounded-bl-full -z-10" />
-              <CardHeader className="pb-4 relative z-10">
-                <div className="bg-accent/15 w-12 h-12 rounded-xl flex items-center justify-center mb-4">
-                  <Refrigerator className="w-6 h-6 text-accent-foreground" />
-                </div>
-                <CardTitle className="text-xl">2. Add what you already have</CardTitle>
-              </CardHeader>
-              <CardContent className="relative z-10">
-                <p className="text-muted-foreground leading-relaxed">
-                  Quickly list pantry staples and fridge items—like rice, beans, pasta, frozen veggies, and leftovers. Add optional &quot;use by&quot; dates so we can spot what needs to be used soon.
-                </p>
-                <p className="text-xs text-muted-foreground mt-4 space-y-1">
-                  <span className="block">• We plan meals from your pantry first to avoid buying duplicates.</span>
-                  <span className="block">• Items close to expiring get used earlier in your plan.</span>
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border shadow-sm hover:shadow-md transition-shadow duration-200">
-              <CardHeader className="pb-4">
-                <div className="bg-primary/10 w-12 h-12 rounded-xl flex items-center justify-center mb-4">
-                  <Leaf className="w-6 h-6 text-primary" />
-                </div>
-                <CardTitle className="text-xl">3. Get your waste-smart meal plan</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground leading-relaxed">
-                  Receive a complete AI-generated meal plan with easy recipes, a leftover-friendly schedule, and a smart grocery list that separates &quot;already in your pantry&quot; from &quot;to buy with SNAP.&quot;
-                </p>
-                <p className="text-xs text-muted-foreground mt-4 space-y-1">
-                  <span className="block">• Designed around your time to cook (busy nights vs. slower days).</span>
-                  <span className="block">• Highlights ingredients that appear in multiple meals, so nothing goes to waste.</span>
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="mt-8 max-w-2xl mx-auto">
-            <Card className="border-border shadow-sm hover:shadow-md transition-shadow duration-200">
-              <CardHeader className="pb-4">
-                <div className="bg-accent/15 w-12 h-12 rounded-xl flex items-center justify-center mb-4">
-                  <ShoppingCart className="w-6 h-6 text-accent-foreground" />
-                </div>
-                <CardTitle className="text-xl">4. Shop with confidence</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground leading-relaxed">
-                  Bring the list to your usual store. See estimated prices by item so you know you can cover everything with your SNAP benefits and any cash you choose to add.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-        )}
-
-        {!isAuthenticated && (
-        <section className="container mx-auto px-4 py-20 max-w-6xl">
-          <div className="text-center mb-12">
-            <h3 className="text-3xl font-bold text-foreground mb-4">
-              Why NourishMe is different for SNAP families
-            </h3>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            <Card className="border-border shadow-sm hover:shadow-md transition-shadow duration-200">
-              <CardHeader className="pb-4">
-                <div className="bg-primary/10 w-12 h-12 rounded-xl flex items-center justify-center mb-4">
-                  <CreditCard className="w-6 h-6 text-primary" />
-                </div>
-                <CardTitle className="text-xl">Make every dollar count</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground leading-relaxed">
-                  Meal plans stay within your remaining SNAP balance and show how much you&apos;ll spend per day over your planning window.
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="border-border shadow-sm hover:shadow-md transition-shadow duration-200">
-              <CardHeader className="pb-4">
-                <div className="bg-accent/15 w-12 h-12 rounded-xl flex items-center justify-center mb-4">
-                  <ClipboardList className="w-6 h-6 text-accent-foreground" />
-                </div>
-                <CardTitle className="text-xl">Use up what you already have</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground leading-relaxed">
-                  We scan your pantry list first, then only add missing items to your grocery list—one of the top SNAP-Ed strategies for cutting waste and saving money.
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="border-border shadow-sm hover:shadow-md transition-shadow duration-200">
-              <CardHeader className="pb-4">
-                <div className="bg-primary/10 w-12 h-12 rounded-xl flex items-center justify-center mb-4">
-                  <Recycle className="w-6 h-6 text-primary" />
-                </div>
-                <CardTitle className="text-xl">Waste less, stress less</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground leading-relaxed">
-                  Meals are ordered to use foods before they go bad and encourage leftovers for busy nights, a proven way to lower both food costs and food waste.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-        )}
-
-        {!isAuthenticated && (
-        <section className="bg-primary/5 py-20 border-y border-primary/10">
-          <div className="container mx-auto px-4 text-center max-w-3xl">
-            <h3 className="text-2xl md:text-3xl font-bold mb-6">
-              Ready to waste less and stretch your SNAP dollars?
-            </h3>
-            <p className="text-muted-foreground mb-8 text-lg">
-              Join families who are saving money, reducing food waste, and eating better with NourishMe.
-            </p>
-            <Button
-              size="lg"
-              className="h-14 px-8 text-base shadow-sm"
-              asChild
+            <div
+              className="hidden md:block"
+              onMouseLeave={() => setHoveredPanel(null)}
             >
-              <Link href="/auth/sign-up">Create Your First Plan</Link>
-            </Button>
-            <p className="mt-4 text-sm text-muted-foreground">
-              Free to use · Built for SNAP households
-            </p>
-          </div>
-        </section>
+              <div className="h-[28rem] [perspective:1200px]">
+                <div className="flex h-full items-end gap-4">
+                  {HOW_IT_WORKS_PANELS.map((panel, index) => {
+                    const isHovered = hoveredPanel === index;
+                    const hasHoveredPanel = hoveredPanel !== null;
+                    const isDimmed = hasHoveredPanel && !isHovered;
+                    const panelTransform = isHovered
+                      ? "scale(1.02) translateZ(30px)"
+                      : isDimmed
+                        ? "scale(0.95) translateZ(-8px)"
+                        : "scale(1) translateZ(0)";
+
+                    return (
+                      <article
+                        key={panel.title}
+                        style={{ height: panel.height, transform: panelTransform }}
+                        onMouseEnter={() => setHoveredPanel(index)}
+                        onFocus={() => setHoveredPanel(index)}
+                        onBlur={() => setHoveredPanel(null)}
+                        tabIndex={0}
+                        className={`group relative isolate overflow-hidden rounded-3xl border border-white/30 px-4 pb-4 pt-4 text-left transition-all duration-500 ease-out outline-none focus-visible:ring-2 focus-visible:ring-primary/60 ${
+                          isHovered
+                            ? "flex-[1.8_1_0%] shadow-2xl shadow-primary/20 blur-0"
+                            : hasHoveredPanel
+                              ? "flex-[0.9_1_0%] shadow-lg shadow-black/5 blur-[2px]"
+                              : "flex-[1_1_0%] shadow-xl shadow-black/10"
+                        }`}
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-b from-white/45 via-white/20 to-white/10 backdrop-blur-[16px] dark:from-white/15 dark:via-white/8 dark:to-white/5" />
+                        <div className="absolute -left-14 -top-10 h-40 w-40 rounded-full bg-primary/20 blur-2xl" />
+                        <div className="absolute -right-12 bottom-0 h-28 w-28 rounded-full bg-accent/25 blur-2xl" />
+
+                        <div className="relative z-10 flex h-full flex-col">
+                          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground/90">
+                            Step {index + 1}
+                          </p>
+                          <h4 className="max-w-[15rem] text-xl font-semibold text-foreground">
+                            {panel.title.replace(`${index + 1}. `, "")}
+                          </h4>
+
+                          <div
+                            className={`mt-4 transition-all duration-500 ${
+                              isHovered
+                                ? "translate-y-0 opacity-100 delay-75"
+                                : "translate-y-2 opacity-0"
+                            }`}
+                          >
+                            <p className="text-sm leading-relaxed text-muted-foreground">
+                              {panel.description}
+                            </p>
+                          </div>
+
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4 md:hidden">
+              {HOW_IT_WORKS_PANELS.map((panel) => {
+                return (
+                  <div
+                    key={`mobile-${panel.title}`}
+                    className="relative overflow-hidden rounded-2xl border border-white/40 bg-background/70 p-4 backdrop-blur-[16px]"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-white/20 to-transparent dark:from-white/10 dark:via-white/5" />
+                    <div className="relative z-10">
+                      <div className="mb-3">
+                        <h4 className="text-lg font-semibold text-foreground">{panel.title}</h4>
+                      </div>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {panel.description}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {!isAuthenticated && (
+          <section className="container mx-auto max-w-6xl px-4 py-16 md:py-20">
+            <div className="relative overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-b from-white/45 via-white/20 to-white/10 p-5 shadow-[0_10px_40px_-22px_hsl(var(--primary)/0.6),inset_0_1px_0_rgba(255,255,255,0.45)] backdrop-blur-[16px] dark:from-white/15 dark:via-white/8 dark:to-white/5 md:rounded-3xl md:p-8">
+              <div className="relative z-10 mb-7 text-center md:mb-9">
+                <h3 className="text-2xl font-bold text-foreground md:text-3xl">
+                  Why NourishMe is different for SNAP families
+                </h3>
+                <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
+                  Compact planning support built to stretch benefits, reduce food waste,
+                  and lower shopping stress.
+                </p>
+              </div>
+
+              <div className="relative z-10 grid gap-4 md:grid-cols-6 md:gap-5">
+                <article
+                  tabIndex={0}
+                  className="group relative overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-b from-white/45 via-white/20 to-white/10 p-4 shadow-[0_8px_30px_-20px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.4)] backdrop-blur-[16px] transition-all duration-500 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 motion-reduce:transition-none motion-reduce:transform-none md:col-span-2 md:translate-y-2 md:hover:-translate-y-1 md:hover:scale-[1.02] md:hover:shadow-[0_20px_60px_-30px_hsl(var(--primary)/0.65)] md:focus-visible:-translate-y-1 md:focus-visible:scale-[1.02] md:focus-visible:shadow-[0_20px_60px_-30px_hsl(var(--primary)/0.65)]"
+                >
+                  <h4 className="text-lg font-semibold text-foreground">Make every dollar count</h4>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                    Meal plans stay within your remaining SNAP balance and show how much
+                    you&apos;ll spend per day over your planning window.
+                  </p>
+                </article>
+
+                <article
+                  tabIndex={0}
+                  className="group relative overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-b from-white/45 via-white/20 to-white/10 p-4 shadow-[0_8px_30px_-20px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.4)] backdrop-blur-[16px] transition-all duration-500 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 motion-reduce:transition-none motion-reduce:transform-none md:col-span-2 md:translate-y-0 md:scale-95 md:opacity-95 md:hover:-translate-y-2 md:hover:scale-[1.02] md:hover:opacity-100 md:hover:shadow-[0_20px_60px_-30px_hsl(var(--primary)/0.55)] md:focus-visible:-translate-y-2 md:focus-visible:scale-[1.02] md:focus-visible:opacity-100 md:focus-visible:shadow-[0_20px_60px_-30px_hsl(var(--primary)/0.55)]"
+                >
+                  <h4 className="text-lg font-semibold text-foreground">Use up what you already have</h4>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                    We scan your pantry list first, then only add missing items to your
+                    grocery list, a top SNAP-Ed strategy for cutting waste and saving money.
+                  </p>
+                </article>
+
+                <article
+                  tabIndex={0}
+                  className="group relative overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-b from-white/45 via-white/20 to-white/10 p-4 shadow-[0_8px_30px_-20px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.4)] backdrop-blur-[16px] transition-all duration-500 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 motion-reduce:transition-none motion-reduce:transform-none md:col-span-2 md:-translate-y-2 md:scale-95 md:opacity-95 md:hover:-translate-y-4 md:hover:scale-[1.02] md:hover:opacity-100 md:hover:shadow-[0_20px_60px_-30px_hsl(var(--primary)/0.55)] md:focus-visible:-translate-y-4 md:focus-visible:scale-[1.02] md:focus-visible:opacity-100 md:focus-visible:shadow-[0_20px_60px_-30px_hsl(var(--primary)/0.55)]"
+                >
+                  <h4 className="text-lg font-semibold text-foreground">Waste less, stress less</h4>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                    Meals are ordered to use foods before they go bad and encourage leftovers
+                    for busy nights, a proven way to lower both food costs and food waste.
+                  </p>
+                </article>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {!isAuthenticated && (
+          <section className="container mx-auto max-w-6xl px-4 pb-20 pt-8">
+            <div className="relative overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-b from-white/45 via-white/20 to-white/10 p-6 text-center shadow-[0_10px_40px_-22px_hsl(var(--primary)/0.5),inset_0_1px_0_rgba(255,255,255,0.45)] backdrop-blur-[16px] dark:from-white/15 dark:via-white/8 dark:to-white/5 md:rounded-3xl md:p-9">
+              <div className="relative z-10 mx-auto max-w-3xl">
+                <h3 className="text-2xl font-bold text-foreground md:text-3xl">
+                  Ready to waste less and stretch your SNAP dollars?
+                </h3>
+                <p className="mx-auto mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">
+                  Join families who are saving money, reducing food waste, and eating better
+                  with NourishMe.
+                </p>
+                <div className="mt-6">
+                  <Button
+                    size="lg"
+                    className="h-12 rounded-xl px-7 text-base shadow-[0_10px_24px_-14px_hsl(var(--primary)/0.65)] !transition-none"
+                    asChild
+                  >
+                    <Link href="/auth/sign-up">Create Your First Plan</Link>
+                  </Button>
+                </div>
+                <p className="mt-4 text-sm text-muted-foreground">
+                  Free to use · Built for SNAP households
+                </p>
+              </div>
+            </div>
+          </section>
         )}
       </main>
 
