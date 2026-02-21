@@ -6,6 +6,8 @@ import { DefaultChatTransport } from "ai";
 import {
   AlertTriangle,
   ArrowUp,
+  BookOpen,
+  ExternalLink,
   Leaf,
   Loader2,
   RotateCcw,
@@ -27,9 +29,34 @@ const transport = new DefaultChatTransport({
   api: "/api/coach/chat",
 });
 
+interface Citation {
+  source_url: string;
+  title: string;
+  chunk_id: string;
+  quote?: string;
+}
+
 interface CoachChatProps {
   initialPrompt?: string;
   compact?: boolean;
+}
+
+function extractDataParts(parts: Array<{ type: string; data?: unknown }>) {
+  let citations: Citation[] = [];
+  let followUps: string[] = [];
+  let safetyNotes: string[] = [];
+
+  for (const part of parts) {
+    if (part.type === "data-citations" && Array.isArray(part.data)) {
+      citations = part.data as Citation[];
+    } else if (part.type === "data-followUps" && Array.isArray(part.data)) {
+      followUps = part.data as string[];
+    } else if (part.type === "data-safetyNotes" && Array.isArray(part.data)) {
+      safetyNotes = part.data as string[];
+    }
+  }
+
+  return { citations, followUps, safetyNotes };
 }
 
 export function CoachChat({ initialPrompt, compact = false }: CoachChatProps) {
@@ -125,42 +152,111 @@ export function CoachChat({ initialPrompt, compact = false }: CoachChatProps) {
           </div>
         )}
 
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={cn(
-              "flex gap-3",
-              message.role === "user" ? "justify-end" : "justify-start",
-            )}
-          >
-            {message.role === "assistant" && (
-              <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center mt-0.5">
-                <Leaf className="w-4 h-4" />
-              </div>
-            )}
+        {messages.map((message) => {
+          const { citations, followUps, safetyNotes } =
+            message.role === "assistant"
+              ? extractDataParts(
+                  message.parts as Array<{ type: string; data?: unknown }>,
+                )
+              : { citations: [], followUps: [], safetyNotes: [] };
 
-            <div
-              className={cn(
-                "rounded-2xl px-4 py-2.5 text-sm leading-relaxed max-w-[85%] whitespace-pre-wrap",
-                message.role === "user"
-                  ? "bg-primary text-primary-foreground rounded-br-md"
-                  : "bg-muted/60 text-foreground rounded-bl-md",
+          return (
+            <div key={message.id} className="space-y-2">
+              <div
+                className={cn(
+                  "flex gap-3",
+                  message.role === "user" ? "justify-end" : "justify-start",
+                )}
+              >
+                {message.role === "assistant" && (
+                  <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center mt-0.5">
+                    <Leaf className="w-4 h-4" />
+                  </div>
+                )}
+
+                <div
+                  className={cn(
+                    "rounded-2xl px-4 py-2.5 text-sm leading-relaxed max-w-[85%] whitespace-pre-wrap",
+                    message.role === "user"
+                      ? "bg-primary text-primary-foreground rounded-br-md"
+                      : "bg-muted/60 text-foreground rounded-bl-md",
+                  )}
+                >
+                  {message.parts.map((part, i) =>
+                    part.type === "text" ? (
+                      <span key={i}>{part.text}</span>
+                    ) : null,
+                  )}
+                </div>
+
+                {message.role === "user" && (
+                  <div className="flex-shrink-0 w-7 h-7 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center mt-0.5">
+                    <User className="w-4 h-4" />
+                  </div>
+                )}
+              </div>
+
+              {/* Safety notes */}
+              {message.role === "assistant" && safetyNotes.length > 0 && (
+                <div className="ml-10 max-w-[85%]">
+                  {safetyNotes.map((note, i) => (
+                    <div
+                      key={i}
+                      className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg px-3 py-2 mt-1"
+                    >
+                      <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                      <span>{note}</span>
+                    </div>
+                  ))}
+                </div>
               )}
-            >
-              {message.parts.map((part, i) =>
-                part.type === "text" ? (
-                  <span key={i}>{part.text}</span>
-                ) : null,
+
+              {/* Citations */}
+              {message.role === "assistant" && citations.length > 0 && (
+                <div className="ml-10 max-w-[85%]">
+                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
+                    <BookOpen className="w-3 h-3" />
+                    <span>Sources</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {citations.map((citation, i) => (
+                      <a
+                        key={i}
+                        href={citation.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors text-muted-foreground"
+                        title={citation.quote || citation.title}
+                      >
+                        <ExternalLink className="w-2.5 h-2.5" />
+                        <span className="max-w-[180px] truncate">
+                          {citation.title}
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
               )}
+
+              {/* Follow-up suggestions */}
+              {message.role === "assistant" &&
+                followUps.length > 0 &&
+                !isLoading && (
+                  <div className="ml-10 max-w-[85%] flex flex-wrap gap-1.5 mt-1">
+                    {followUps.map((q, i) => (
+                      <button
+                        key={i}
+                        onClick={() => handlePromptClick(q)}
+                        className="text-[11px] px-2.5 py-1 rounded-full border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors text-muted-foreground"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                )}
             </div>
-
-            {message.role === "user" && (
-              <div className="flex-shrink-0 w-7 h-7 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center mt-0.5">
-                <User className="w-4 h-4" />
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
 
         {status === "submitted" && (
           <div className="flex gap-3 justify-start">
