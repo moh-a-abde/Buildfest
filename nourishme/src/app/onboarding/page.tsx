@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   useForm,
@@ -88,7 +88,7 @@ const onboardingSchema = z.object({
   cookingTime: z.enum(["quick", "moderate", "extended"], {
     error: "Please select a cooking time preference",
   }),
-  ecoPriorityEnabled: z.boolean().default(false),
+  ecoPriorityEnabled: z.boolean(),
 });
 
 type OnboardingValues = z.infer<typeof onboardingSchema>;
@@ -144,14 +144,9 @@ type BudgetSnapshot =
 
 function hasBudgetSnapshot(value: BudgetSnapshot | null): boolean {
   if (!value) return false;
-  const snap =
-    "snap_remaining" in value
-      ? value.snap_remaining
-      : value.snapRemaining;
-  const horizon =
-    "horizon_days" in value
-      ? value.horizon_days
-      : value.horizonDays;
+  const v = value as { snap_remaining?: number; snapRemaining?: number; horizon_days?: number; horizonDays?: number };
+  const snap = v.snap_remaining ?? v.snapRemaining;
+  const horizon = v.horizon_days ?? v.horizonDays;
   return (
     typeof snap === "number" &&
     !Number.isNaN(snap) &&
@@ -169,7 +164,7 @@ function hasPantrySnapshot(value: unknown): boolean {
   });
 }
 
-export default function OnboardingPage() {
+function OnboardingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isEditMode = searchParams.get("edit") === "1";
@@ -349,7 +344,7 @@ export default function OnboardingPage() {
   const currentMeta = STEP_META[step];
 
   const shouldReduceMotion = useReducedMotion();
-  const transition = { duration: 0.7, ease: "easeOut" };
+  const transition = { duration: 0.7, ease: "easeOut" as const };
   const motionProps = shouldReduceMotion
     ? { initial: { opacity: 1, y: 0 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 1, y: 0 }, transition }
     : { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -16 }, transition };
@@ -486,6 +481,14 @@ export default function OnboardingPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+      <OnboardingContent />
+    </Suspense>
   );
 }
 

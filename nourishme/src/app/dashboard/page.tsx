@@ -52,7 +52,7 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { y: 16, opacity: 0 },
-  visible: { y: 0, opacity: 1, transition: { duration: 0.6, ease: "easeOut" } }
+  visible: { y: 0, opacity: 1, transition: { duration: 0.6, ease: "easeOut" as const } },
 };
 import { AuthHeader } from "@/components/AuthHeader";
 import { StoreCard } from "@/components/GroceryList";
@@ -162,7 +162,7 @@ function DashboardStoresSection({ zipCode }: { zipCode: string }) {
   useEffect(() => {
     let active = true;
 
-    async function load() {
+    function load(): (() => void) | void {
       if (!zipCode) {
         if (active) setLoading(false);
         return;

@@ -1,5 +1,70 @@
 import type { GeneratePlanToolOutput } from "@/app/ai/tools";
-import type { PantryItemInput } from "@/app/api/plan/generate/types";
+import type {
+  PantryItemInput,
+  ReasonCode,
+  DayPlan,
+  GeneratePlanResponse,
+} from "@/app/api/plan/generate/types";
+
+const VALID_REASON_CODES: ReasonCode[] = [
+  "allergen_blocked",
+  "allergen_safety_fallback",
+  "eco_preferred",
+  "better_eco_score",
+  "better_nutri_score",
+  "lower_nova_group",
+  "lower_carbon_footprint",
+  "weighted_metadata_preference",
+  "metadata_unknown_eco_score",
+  "metadata_unknown_nutri_score",
+  "metadata_unknown_nova_group",
+  "metadata_unknown_carbon_footprint",
+];
+
+const REASON_CODE_SET = new Set<string>(VALID_REASON_CODES);
+
+function filterToReasonCodes(codes: string[] | undefined): ReasonCode[] | undefined {
+  if (!codes?.length) return undefined;
+  const filtered = codes.filter((c) => REASON_CODE_SET.has(c)) as ReasonCode[];
+  return filtered.length > 0 ? filtered : undefined;
+}
+
+/**
+ * Normalizes a plan from AI/processing output (which may have string[] reasonCodes)
+ * to the strict GeneratePlanResponse shape (ReasonCode[]).
+ */
+export function normalizePlanForResponse(
+  plan: GeneratePlanToolOutput,
+  planId: string,
+): GeneratePlanResponse {
+  const mealsByDay: DayPlan[] = plan.mealsByDay.map((day) => ({
+    dayIndex: day.dayIndex,
+    dateLabel: day.dateLabel,
+    meals: day.meals.map((meal) => ({
+      ...meal,
+      ingredients: meal.ingredients.map((ing) => ({
+        ...ing,
+        reasonCodes: filterToReasonCodes(ing.reasonCodes as string[] | undefined),
+      })),
+    })),
+    dayCost: day.dayCost,
+    dayCalories: day.dayCalories,
+  }));
+
+  const shoppingList = plan.shoppingList.map((item) => ({
+    ...item,
+    reasonCodes: filterToReasonCodes(item.reasonCodes as string[] | undefined),
+  }));
+
+  return {
+    planId,
+    mealsByDay,
+    shoppingList,
+    estimatedTotalCost: plan.estimatedTotalCost,
+    nutritionSummary: plan.nutritionSummary,
+    confidenceNotes: plan.confidenceNotes,
+  };
+}
 
 /**
  * Recompute nutrition summary from actual meal data so displayed numbers

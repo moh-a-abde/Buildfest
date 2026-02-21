@@ -42,6 +42,26 @@ const ALLERGEN_KEYWORDS: Record<string, string[]> = {
   sesame: ["sesame", "tahini"],
 };
 
+const VALID_REASON_CODES = new Set<ReasonCode>([
+  "allergen_blocked",
+  "allergen_safety_fallback",
+  "eco_preferred",
+  "better_eco_score",
+  "better_nutri_score",
+  "lower_nova_group",
+  "lower_carbon_footprint",
+  "weighted_metadata_preference",
+  "metadata_unknown_eco_score",
+  "metadata_unknown_nutri_score",
+  "metadata_unknown_nova_group",
+  "metadata_unknown_carbon_footprint",
+]);
+
+function toReasonCodes(codes: string[] | undefined): ReasonCode[] {
+  if (!codes?.length) return [];
+  return codes.filter((c): c is ReasonCode => VALID_REASON_CODES.has(c as ReasonCode));
+}
+
 const ALLERGEN_SAFE_REPLACEMENTS: Record<string, string> = {
   peanuts: "sunflower seeds",
   "tree-nuts": "sunflower seeds",
@@ -259,7 +279,7 @@ function updateShoppingListFromMeals(plan: GeneratePlanToolOutput): void {
             substitutedFrom: ingredient.substitutedFrom,
             substitutionReason: ingredient.substitutionReason,
             substitutionDetails: ingredient.substitutionDetails,
-            reasonCodes: ingredient.reasonCodes,
+            reasonCodes: toReasonCodes(ingredient.reasonCodes as string[] | undefined),
           });
         } else {
           existing.quantity += ingredient.quantity;
@@ -271,7 +291,10 @@ function updateShoppingListFromMeals(plan: GeneratePlanToolOutput): void {
             existing.substitutedFrom =
               existing.substitutedFrom ?? ingredient.substitutedFrom;
             existing.reasonCodes = Array.from(
-              new Set([...(existing.reasonCodes ?? []), ...(ingredient.reasonCodes ?? [])]),
+              new Set<ReasonCode>([
+                ...(existing.reasonCodes ?? []),
+                ...toReasonCodes(ingredient.reasonCodes as string[] | undefined),
+              ]),
             ).sort((a, b) => a.localeCompare(b));
           }
         }
@@ -359,7 +382,10 @@ export async function applyPreferenceConstraints(
           if (detectAllergenMatch(ingredient.name, excludedAllergens, replacementMeta)) {
             ingredient.name = resolveGuaranteedSafeReplacement(excludedAllergens);
             ingredient.reasonCodes = Array.from(
-              new Set<ReasonCode>([...(ingredient.reasonCodes ?? []), "allergen_safety_fallback"]),
+              new Set<ReasonCode>([
+                ...toReasonCodes(ingredient.reasonCodes as string[] | undefined),
+                "allergen_safety_fallback",
+              ]),
             ).sort((a, b) => a.localeCompare(b));
             ingredient.substitutionDetails =
               `Swapped in instead of ${original} to avoid ${matchedAllergen}.`;

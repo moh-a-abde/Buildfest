@@ -3,12 +3,15 @@ import { GeneratePlanRequestSchema } from "./schemas";
 import { generateMealPlan } from "@/app/ai/client";
 import { recalculatePlanCosts, type PricingContext } from "@/lib/cost-calculator";
 import { createFallbackPlan } from "@/lib/fallback-plan";
-import { normalizePantryFlags, recomputeNutritionSummary } from "@/lib/plan-normalizer";
+import {
+  normalizePantryFlags,
+  normalizePlanForResponse,
+  recomputeNutritionSummary,
+} from "@/lib/plan-normalizer";
 import { applyPreferenceConstraints } from "@/lib/plan-preference-constraints";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { resolveUserId, getServiceClient } from "@/lib/db";
 import type { GeneratePlanToolInput } from "@/app/ai/tools";
-import type { GeneratePlanResponse } from "./types";
 
 const AI_MAX_ATTEMPTS = 2;
 
@@ -188,14 +191,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const response: GeneratePlanResponse = {
-      planId: inserted.id,
-      mealsByDay: plan.mealsByDay,
-      shoppingList: plan.shoppingList,
-      estimatedTotalCost: plan.estimatedTotalCost,
-      nutritionSummary: plan.nutritionSummary,
-      confidenceNotes: plan.confidenceNotes,
-    };
+    const response = normalizePlanForResponse(plan, inserted.id);
 
     return NextResponse.json(response, {
       status: 200,

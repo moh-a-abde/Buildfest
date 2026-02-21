@@ -259,7 +259,7 @@ export function NearbyStores({ zipCode }: { zipCode: string }) {
   useEffect(() => {
     let active = true;
 
-    async function load() {
+    function load(): (() => void) | void {
       if (!zipCode) {
         if (active) setStores([]);
         return;
